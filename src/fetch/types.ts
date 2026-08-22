@@ -1,6 +1,7 @@
 export interface RawYearData {
   year: number;
-  repos: Array<{ createdAt: string; pushedAt: string; languages: Record<string, number> }>;
+  repos: Array<{ name: string; createdAt: string; pushedAt: string; languages: Record<string, number> }>;
+  activeRepoNames: string[];
   contributionCalendar: {
     weeks: Array<{ contributionDays: Array<{ date: string; contributionCount: number }> }>;
   };

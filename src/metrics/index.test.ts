@@ -6,6 +6,7 @@ function raw(overrides: Partial<RawYearData>): RawYearData {
   return {
     year: 2024,
     repos: [],
+    activeRepoNames: [],
     contributionCalendar: { weeks: [] },
     ownPRCount: 0,
     externalPRCount: 0,
@@ -17,13 +18,14 @@ function raw(overrides: Partial<RawYearData>): RawYearData {
 }
 
 describe('toYearlyMetrics', () => {
-  it('sums language bytes across repos pushed in the target year', () => {
+  it('sums language bytes across repos with commit activity in the target year', () => {
     const data = raw({
       repos: [
-        { createdAt: '2020-01-01T00:00:00Z', pushedAt: '2024-06-01T00:00:00Z', languages: { Python: 100 } },
-        { createdAt: '2020-01-01T00:00:00Z', pushedAt: '2024-07-01T00:00:00Z', languages: { Python: 50, Go: 20 } },
-        { createdAt: '2020-01-01T00:00:00Z', pushedAt: '2023-01-01T00:00:00Z', languages: { Rust: 999 } },
+        { name: 'a', createdAt: '2020-01-01T00:00:00Z', pushedAt: '2024-06-01T00:00:00Z', languages: { Python: 100 } },
+        { name: 'b', createdAt: '2020-01-01T00:00:00Z', pushedAt: '2024-07-01T00:00:00Z', languages: { Python: 50, Go: 20 } },
+        { name: 'c', createdAt: '2020-01-01T00:00:00Z', pushedAt: '2023-01-01T00:00:00Z', languages: { Rust: 999 } },
       ],
+      activeRepoNames: ['a', 'b'],
     });
     const result = toYearlyMetrics(data, new Set());
     expect(result.languageBytes).toEqual({ Python: 150, Go: 20 });
@@ -31,7 +33,8 @@ describe('toYearlyMetrics', () => {
 
   it('counts new languages not seen in prior years', () => {
     const data = raw({
-      repos: [{ createdAt: '2024-01-01T00:00:00Z', pushedAt: '2024-01-01T00:00:00Z', languages: { Python: 1, Go: 1 } }],
+      repos: [{ name: 'a', createdAt: '2024-01-01T00:00:00Z', pushedAt: '2024-01-01T00:00:00Z', languages: { Python: 1, Go: 1 } }],
+      activeRepoNames: ['a'],
     });
     const result = toYearlyMetrics(data, new Set(['Python']));
     expect(result.newLanguageCount).toBe(1);
@@ -40,19 +43,20 @@ describe('toYearlyMetrics', () => {
   it('counts repos created in the target year', () => {
     const data = raw({
       repos: [
-        { createdAt: '2024-03-01T00:00:00Z', pushedAt: '2024-03-01T00:00:00Z', languages: {} },
-        { createdAt: '2023-03-01T00:00:00Z', pushedAt: '2024-03-01T00:00:00Z', languages: {} },
+        { name: 'a', createdAt: '2024-03-01T00:00:00Z', pushedAt: '2024-03-01T00:00:00Z', languages: {} },
+        { name: 'b', createdAt: '2023-03-01T00:00:00Z', pushedAt: '2024-03-01T00:00:00Z', languages: {} },
       ],
     });
     expect(toYearlyMetrics(data, new Set()).reposCreated).toBe(1);
   });
 
-  it('counts repos active (pushed) in the target year', () => {
+  it('counts repos active (with commit activity) in the target year', () => {
     const data = raw({
       repos: [
-        { createdAt: '2020-01-01T00:00:00Z', pushedAt: '2024-03-01T00:00:00Z', languages: {} },
-        { createdAt: '2020-01-01T00:00:00Z', pushedAt: '2023-03-01T00:00:00Z', languages: {} },
+        { name: 'a', createdAt: '2020-01-01T00:00:00Z', pushedAt: '2024-03-01T00:00:00Z', languages: {} },
+        { name: 'b', createdAt: '2020-01-01T00:00:00Z', pushedAt: '2023-03-01T00:00:00Z', languages: {} },
       ],
+      activeRepoNames: ['a'],
     });
     expect(toYearlyMetrics(data, new Set()).reposActive).toBe(1);
   });
@@ -60,9 +64,10 @@ describe('toYearlyMetrics', () => {
   it('counts long-lived repos as active repos at least a year old', () => {
     const data = raw({
       repos: [
-        { createdAt: '2023-01-01T00:00:00Z', pushedAt: '2024-06-01T00:00:00Z', languages: {} }, // ~17mo old
-        { createdAt: '2024-05-01T00:00:00Z', pushedAt: '2024-06-01T00:00:00Z', languages: {} }, // ~1mo old
+        { name: 'a', createdAt: '2023-01-01T00:00:00Z', pushedAt: '2024-06-01T00:00:00Z', languages: {} }, // ~17mo old
+        { name: 'b', createdAt: '2024-05-01T00:00:00Z', pushedAt: '2024-06-01T00:00:00Z', languages: {} }, // ~1mo old
       ],
+      activeRepoNames: ['a', 'b'],
     });
     expect(toYearlyMetrics(data, new Set()).longLivedRepoCount).toBe(1);
   });

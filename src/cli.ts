@@ -44,8 +44,10 @@ export async function buildJourney(
 }
 
 async function main() {
-  const username = process.argv.find((a) => a.startsWith('--username='))?.split('=')[1] ?? process.env.USERNAME;
-  const displayName = process.argv.find((a) => a.startsWith('--name='))?.split('=')[1] ?? username;
+  const usernameFlag = process.argv.find((a) => a.startsWith('--username='));
+  const nameFlag = process.argv.find((a) => a.startsWith('--name='));
+  const username = usernameFlag?.slice('--username='.length);
+  const displayName = nameFlag?.slice('--name='.length) || username;
   const token = process.env.GH_TOKEN;
   const gistId = process.env.GIST_ID;
 

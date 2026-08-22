@@ -54,10 +54,10 @@ const risingStar: Rule = (ctx) => {
 };
 
 const collaborator: Rule = (ctx) => {
+  if (!ctx.baseline) return null;
   const reviews = ctx.metrics.reviews;
   if (reviews < COLLAB_MIN_ABSOLUTE) return null;
-  const baselineAvgReviews = ctx.baseline?.avgReviews ?? 0;
-  if (reviews < baselineAvgReviews * COLLAB_GROWTH_MULTIPLIER) return null;
+  if (reviews < ctx.baseline.avgReviews * COLLAB_GROWTH_MULTIPLIER) return null;
   return { archetype: 'Collaborator', reason: metricReason('👀', `+${reviews} reviews`) };
 };
 

@@ -7,7 +7,7 @@ export interface OctokitLike {
       listForUser(params: {
         username: string;
         per_page: number;
-      }): Promise<{ data: Array<{ name: string; created_at: string; pushed_at: string }> }>;
+      }): Promise<{ data: Array<{ name: string; created_at: string; pushed_at: string; fork: boolean }> }>;
       listLanguages(params: { owner: string; repo: string }): Promise<{ data: Record<string, number> }>;
     };
     search: {
@@ -39,18 +39,22 @@ const CONTRIBUTIONS_QUERY = `
         contributionCalendar {
           weeks { contributionDays { date contributionCount } }
         }
+        commitContributionsByRepository(maxRepositories: 100) {
+          repository { name isFork }
+        }
       }
     }
   }
 `;
 
 export async function fetchRawYear(octokit: OctokitLike, username: string, year: number): Promise<RawYearData> {
-  const { data: repoList } = await octokit.rest.repos.listForUser({ username, per_page: 100 });
+  const { data: allRepos } = await octokit.rest.repos.listForUser({ username, per_page: 100 });
+  const repoList = allRepos.filter((r) => !r.fork);
 
   const repos = await Promise.all(
     repoList.map(async (repo) => {
       const { data: languages } = await octokit.rest.repos.listLanguages({ owner: username, repo: repo.name });
-      return { createdAt: repo.created_at, pushedAt: repo.pushed_at, languages };
+      return { name: repo.name, createdAt: repo.created_at, pushedAt: repo.pushed_at, languages };
     })
   );
 
@@ -59,7 +63,13 @@ export async function fetchRawYear(octokit: OctokitLike, username: string, year:
   const dateRange = `${year}-01-01..${year}-12-31`;
 
   const contributions = await octokit.graphql(CONTRIBUTIONS_QUERY, { username, from, to });
-  const contributionCalendar = contributions.user.contributionsCollection.contributionCalendar;
+  const collection = contributions.user.contributionsCollection;
+  const contributionCalendar = collection.contributionCalendar;
+  const commitContributionsByRepository: Array<{ repository: { name: string; isFork: boolean } }> =
+    collection.commitContributionsByRepository ?? [];
+  const activeRepoNames = commitContributionsByRepository
+    .filter((c) => !c.repository.isFork)
+    .map((c) => c.repository.name);
 
   const { data: ownPRs } = await octokit.rest.search.issuesAndPullRequests({
     q: `author:${username} type:pr created:${dateRange} user:${username}`,
@@ -90,6 +100,7 @@ export async function fetchRawYear(octokit: OctokitLike, username: string, year:
   return {
     year,
     repos,
+    activeRepoNames,
     contributionCalendar,
     ownPRCount: ownPRs.total_count,
     externalPRCount: externalPRs.total_count,

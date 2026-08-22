@@ -7,7 +7,7 @@ function makeOctokit(overrides: Record<string, any> = {}) {
       users: { getByUsername: vi.fn().mockResolvedValue({ data: { created_at: '2020-05-01T00:00:00Z' } }) },
       repos: {
         listForUser: vi.fn().mockResolvedValue({
-          data: [{ name: 'proj-a', created_at: '2024-01-01T00:00:00Z', pushed_at: '2024-06-01T00:00:00Z' }],
+          data: [{ name: 'proj-a', created_at: '2024-01-01T00:00:00Z', pushed_at: '2024-06-01T00:00:00Z', fork: false }],
         }),
         listLanguages: vi.fn().mockResolvedValue({ data: { Python: 500 } }),
       },
@@ -22,6 +22,7 @@ function makeOctokit(overrides: Record<string, any> = {}) {
       user: {
         contributionsCollection: {
           contributionCalendar: { weeks: [{ contributionDays: [{ date: '2024-01-05', contributionCount: 3 }] }] },
+          commitContributionsByRepository: [{ repository: { name: 'proj-a', isFork: false } }],
         },
       },
     }),
@@ -42,7 +43,7 @@ describe('fetchRawYear', () => {
     const octokit = makeOctokit();
     const result = await fetchRawYear(octokit as any, 'seuthootDev', 2024);
     expect(result.repos).toEqual([
-      { createdAt: '2024-01-01T00:00:00Z', pushedAt: '2024-06-01T00:00:00Z', languages: { Python: 500 } },
+      { name: 'proj-a', createdAt: '2024-01-01T00:00:00Z', pushedAt: '2024-06-01T00:00:00Z', languages: { Python: 500 } },
     ]);
   });
 
@@ -51,6 +52,43 @@ describe('fetchRawYear', () => {
     const result = await fetchRawYear(octokit as any, 'seuthootDev', 2024);
     expect(result.year).toBe(2024);
     expect(result.contributionCalendar.weeks[0].contributionDays[0].contributionCount).toBe(3);
+  });
+
+  it('derives activeRepoNames from commitContributionsByRepository', async () => {
+    const octokit = makeOctokit();
+    const result = await fetchRawYear(octokit as any, 'seuthootDev', 2024);
+    expect(result.activeRepoNames).toEqual(['proj-a']);
+  });
+
+  it('excludes forked repos from both the repo list and activeRepoNames', async () => {
+    const octokit = makeOctokit({
+      rest: {
+        ...makeOctokit().rest,
+        repos: {
+          ...makeOctokit().rest.repos,
+          listForUser: vi.fn().mockResolvedValue({
+            data: [
+              { name: 'proj-a', created_at: '2024-01-01T00:00:00Z', pushed_at: '2024-06-01T00:00:00Z', fork: false },
+              { name: 'forked-proj', created_at: '2024-02-01T00:00:00Z', pushed_at: '2024-02-01T00:00:00Z', fork: true },
+            ],
+          }),
+        },
+      },
+      graphql: vi.fn().mockResolvedValue({
+        user: {
+          contributionsCollection: {
+            contributionCalendar: { weeks: [] },
+            commitContributionsByRepository: [
+              { repository: { name: 'proj-a', isFork: false } },
+              { repository: { name: 'forked-proj', isFork: true } },
+            ],
+          },
+        },
+      }),
+    });
+    const result = await fetchRawYear(octokit as any, 'seuthootDev', 2024);
+    expect(result.repos.map((r) => r.name)).toEqual(['proj-a']);
+    expect(result.activeRepoNames).toEqual(['proj-a']);
   });
 
   it('queries own and external PR counts with year-scoped search queries', async () => {

@@ -26,7 +26,8 @@ function computeLongestStreak(raw: RawYearData): number {
 }
 
 export function toYearlyMetrics(raw: RawYearData, priorLanguages: ReadonlySet<string>): YearlyMetrics {
-  const activeRepos = raw.repos.filter((r) => yearOf(r.pushedAt) === raw.year);
+  const activeRepoNameSet = new Set(raw.activeRepoNames);
+  const activeRepos = raw.repos.filter((r) => activeRepoNameSet.has(r.name));
   const createdRepos = raw.repos.filter((r) => yearOf(r.createdAt) === raw.year);
 
   const languageBytes: Record<string, number> = {};
