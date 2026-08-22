@@ -5,8 +5,9 @@ import { load } from 'js-yaml';
 describe('update-journey-gist workflow', () => {
   const doc = load(readFileSync('.github/workflows/update-journey-gist.yml', 'utf8')) as any;
 
-  it('is triggered by schedule and manual dispatch', () => {
+  it('is triggered by push, schedule, and manual dispatch', () => {
     const triggers = Object.keys(doc.on);
+    expect(triggers).toContain('push');
     expect(triggers).toContain('schedule');
     expect(triggers).toContain('workflow_dispatch');
   });

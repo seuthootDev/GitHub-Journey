@@ -60,7 +60,7 @@ async function main() {
   const result = await buildJourney(octokit as unknown as OctokitLike, {
     username,
     displayName: displayName ?? username,
-    maxYears: 5,
+    maxYears: 3,
   });
 
   if (gistId && token) {

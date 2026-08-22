@@ -141,7 +141,13 @@ export function evaluateYear(ctx: YearContext): JourneyYear {
   for (const rule of RULES) {
     const match = rule(ctx);
     if (match) {
-      return { year: ctx.metrics.year, archetype: match.archetype, reason: match.reason, isCurrent: ctx.isCurrent };
+      return {
+        year: ctx.metrics.year,
+        archetype: match.archetype,
+        reason: match.reason,
+        isCurrent: ctx.isCurrent,
+        sameLanguageStreakYears: ctx.sameLanguageStreakYears,
+      };
     }
   }
   // consistent always matches, so this is unreachable — kept for type safety.

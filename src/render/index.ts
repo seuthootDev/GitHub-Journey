@@ -1,5 +1,6 @@
 import type { JourneyYear, Reason, YearlyMetrics } from '../types';
 import { dominantLanguage } from '../metrics/language';
+import { summarizeJourney } from '../summarize';
 
 function renderReason(reason: Reason): string {
   return reason.kind === 'language' ? `${reason.emoji} ${reason.label}` : `${reason.icon} ${reason.text}`;
@@ -11,7 +12,10 @@ function renderLine(year: JourneyYear): string {
 }
 
 export function renderPinHeadline(years: JourneyYear[]): string {
-  return years.map(renderLine).join('\n');
+  const lines = years.map(renderLine);
+  const summary = summarizeJourney(years);
+  if (summary) lines.push(summary);
+  return lines.join('\n');
 }
 
 function renderBreakdownTable(metrics: YearlyMetrics[]): string {
@@ -31,12 +35,7 @@ export function renderGistBody(
   metrics: YearlyMetrics[]
 ): string {
   const headline = renderPinHeadline(years);
-  const first = years[0];
-  const last = years[years.length - 1];
-  const synthesis =
-    first && last
-      ? `Your Developer Journey: you started as ${first.archetype} in ${first.year}, and by ${last.year} you were ${last.archetype}.`
-      : '';
+  const synthesis = summarizeJourney(years);
   return [
     `# ${displayName} (@${username})`,
     '',

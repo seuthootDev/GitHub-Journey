@@ -23,7 +23,7 @@ function makeOctokit() {
 }
 
 describe('buildJourney', () => {
-  it('produces a 5-line pin headline for an account exactly 5 years old', async () => {
+  it('produces 3 year lines plus a summary for an older account capped at 3 years', async () => {
     const octokit = makeOctokit();
     octokit.rest.users.getByUsername = vi
       .fn()
@@ -31,34 +31,39 @@ describe('buildJourney', () => {
     const result = await buildJourney(octokit as any, {
       username: 'seuthootDev',
       displayName: 'Jung Seunghoon',
-      maxYears: 5,
+      maxYears: 3,
       now: new Date('2026-08-22T00:00:00Z'),
     });
-    expect(result.pinHeadline.split('\n')).toHaveLength(5);
+    expect(result.pinHeadline.split('\n')).toHaveLength(4);
   });
 
-  it('produces fewer lines for a younger account, capped at maxYears', async () => {
-    const octokit = makeOctokit(); // created_at 2024-01-01
+  it('produces fewer year lines for a younger account, plus a summary when there are 2+ years', async () => {
+    const octokit = makeOctokit();
+    octokit.rest.users.getByUsername = vi
+      .fn()
+      .mockResolvedValue({ data: { created_at: '2025-01-01T00:00:00Z' } });
     const result = await buildJourney(octokit as any, {
       username: 'seuthootDev',
       displayName: 'Jung Seunghoon',
-      maxYears: 5,
+      maxYears: 3,
       now: new Date('2026-08-22T00:00:00Z'),
     });
-    expect(result.pinHeadline.split('\n')).toHaveLength(3); // 2024, 2025, 2026
+    // 2025, 2026 + first → last summary
+    expect(result.pinHeadline.split('\n')).toHaveLength(3);
   });
 
-  it('marks the current (now) year as current in the last line', async () => {
+  it('marks the current (now) year as current on the last year line, not the summary', async () => {
     const octokit = makeOctokit();
     const result = await buildJourney(octokit as any, {
       username: 'seuthootDev',
       displayName: 'Jung Seunghoon',
-      maxYears: 5,
+      maxYears: 3,
       now: new Date('2026-08-22T00:00:00Z'),
     });
     const lines = result.pinHeadline.split('\n');
-    expect(lines[lines.length - 1]).toContain('2026');
-    expect(lines[lines.length - 1]).toContain('●');
+    expect(lines[2]).toContain('2026');
+    expect(lines[2]).toContain('●');
+    expect(lines[3]).not.toContain('●');
   });
 
   it('includes the pin headline inside the gist body', async () => {
@@ -66,7 +71,7 @@ describe('buildJourney', () => {
     const result = await buildJourney(octokit as any, {
       username: 'seuthootDev',
       displayName: 'Jung Seunghoon',
-      maxYears: 5,
+      maxYears: 3,
       now: new Date('2026-08-22T00:00:00Z'),
     });
     expect(result.gistBody).toContain(result.pinHeadline);

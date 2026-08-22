@@ -28,4 +28,5 @@ export interface JourneyYear {
   archetype: Archetype;
   reason: Reason;
   isCurrent: boolean;
+  sameLanguageStreakYears: number;
 }

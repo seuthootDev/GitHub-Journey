@@ -171,6 +171,11 @@ describe('evaluateYear', () => {
     expect(result.isCurrent).toBe(true);
   });
 
+  it('carries sameLanguageStreakYears through from the YearContext', () => {
+    const result = evaluateYear(ctx({ metrics: metrics({ commitDays: 40 }), sameLanguageStreakYears: 3 }));
+    expect(result.sameLanguageStreakYears).toBe(3);
+  });
+
   it('carries the year through from the metrics', () => {
     const result = evaluateYear(ctx({ metrics: metrics({ year: 2019, commitDays: 40 }) }));
     expect(result.year).toBe(2019);
