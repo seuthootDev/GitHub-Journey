@@ -38,7 +38,6 @@ export function renderGistBody(
   const synthesis = summarizeJourney(years);
   return [
     `# ${displayName} (@${username})`,
-    '',
     headline,
     '',
     '---',

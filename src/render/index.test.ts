@@ -72,6 +72,11 @@ describe('renderGistBody', () => {
     expect(body).toContain(renderPinHeadline(sampleYears));
   });
 
+  it('puts the headline immediately under the title with no blank line', () => {
+    const body = renderGistBody('seuthootDev', 'Jung Seunghoon', sampleYears, sampleMetrics);
+    expect(body.startsWith('# Jung Seunghoon (@seuthootDev)\n2024 Explorer')).toBe(true);
+  });
+
   it('includes the username', () => {
     const body = renderGistBody('seuthootDev', 'Jung Seunghoon', sampleYears, sampleMetrics);
     expect(body).toContain('seuthootDev');
