@@ -106,6 +106,47 @@ describe('fetchRawYear', () => {
     expect(result.starsGainedThisYear).toBe(1);
   });
 
+  it('treats a 404 from listLanguages as an empty language set for that repo, not a fatal error', async () => {
+    const octokit = makeOctokit({
+      rest: {
+        ...makeOctokit().rest,
+        repos: {
+          ...makeOctokit().rest.repos,
+          listLanguages: vi.fn().mockRejectedValue(Object.assign(new Error('Not Found'), { status: 404 })),
+        },
+      },
+    });
+    const result = await fetchRawYear(octokit as any, 'seuthootDev', 2024);
+    expect(result.repos).toEqual([
+      { name: 'proj-a', createdAt: '2024-01-01T00:00:00Z', pushedAt: '2024-06-01T00:00:00Z', languages: {} },
+    ]);
+  });
+
+  it('treats a 404 from listStargazersForRepo (e.g. an archived repo) as zero stars for that repo, not a fatal error', async () => {
+    const octokit = makeOctokit({
+      rest: {
+        ...makeOctokit().rest,
+        activity: {
+          listStargazersForRepo: vi.fn().mockRejectedValue(Object.assign(new Error('Not Found'), { status: 404 })),
+        },
+      },
+    });
+    const result = await fetchRawYear(octokit as any, 'seuthootDev', 2024);
+    expect(result.starsGainedThisYear).toBe(0);
+  });
+
+  it('still throws for a non-404 error from listStargazersForRepo (e.g. rate limiting)', async () => {
+    const octokit = makeOctokit({
+      rest: {
+        ...makeOctokit().rest,
+        activity: {
+          listStargazersForRepo: vi.fn().mockRejectedValue(Object.assign(new Error('Forbidden'), { status: 403 })),
+        },
+      },
+    });
+    await expect(fetchRawYear(octokit as any, 'seuthootDev', 2024)).rejects.toThrow('Forbidden');
+  });
+
   it('counts distinct external repos from the external-PR search results', async () => {
     const octokit = makeOctokit({
       rest: {

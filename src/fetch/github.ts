@@ -32,6 +32,10 @@ export async function fetchAccountCreatedYear(octokit: OctokitLike, username: st
   return new Date(data.created_at).getUTCFullYear();
 }
 
+function isNotFound(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && (err as { status?: unknown }).status === 404;
+}
+
 const CONTRIBUTIONS_QUERY = `
   query($username: String!, $from: DateTime!, $to: DateTime!) {
     user(login: $username) {
@@ -53,7 +57,13 @@ export async function fetchRawYear(octokit: OctokitLike, username: string, year:
 
   const repos = await Promise.all(
     repoList.map(async (repo) => {
-      const { data: languages } = await octokit.rest.repos.listLanguages({ owner: username, repo: repo.name });
+      let languages: Record<string, number>;
+      try {
+        ({ data: languages } = await octokit.rest.repos.listLanguages({ owner: username, repo: repo.name }));
+      } catch (err) {
+        if (!isNotFound(err)) throw err;
+        languages = {};
+      }
       return { name: repo.name, createdAt: repo.created_at, pushedAt: repo.pushed_at, languages };
     })
   );
@@ -84,12 +94,18 @@ export async function fetchRawYear(octokit: OctokitLike, username: string, year:
 
   let starsGainedThisYear = 0;
   for (const repo of repoList) {
-    const { data: stargazers } = await octokit.rest.activity.listStargazersForRepo({
-      owner: username,
-      repo: repo.name,
-      headers: { accept: 'application/vnd.github.star+json' },
-      per_page: 100,
-    });
+    let stargazers: Array<{ starred_at?: string }>;
+    try {
+      ({ data: stargazers } = await octokit.rest.activity.listStargazersForRepo({
+        owner: username,
+        repo: repo.name,
+        headers: { accept: 'application/vnd.github.star+json' },
+        per_page: 100,
+      }));
+    } catch (err) {
+      if (!isNotFound(err)) throw err;
+      stargazers = [];
+    }
     for (const s of stargazers) {
       if (s.starred_at && new Date(s.starred_at).getUTCFullYear() === year) {
         starsGainedThisYear++;
