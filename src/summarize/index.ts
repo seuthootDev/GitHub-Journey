@@ -31,7 +31,7 @@ export function summarizeJourney(years: JourneyYear[]): string {
   const [year1, year2, year3] = years;
 
   if (year1.archetype === 'Quiet Year' && year3.archetype !== 'Quiet Year') {
-    return `Bounced back from a quiet year — now ${year3.archetype}`;
+    return `From a quiet year to ${year3.archetype}`;
   }
 
   if (year1.archetype !== 'Quiet Year' && year3.archetype === 'Quiet Year') {

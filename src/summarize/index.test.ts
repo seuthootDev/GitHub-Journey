@@ -39,7 +39,7 @@ describe('summarizeJourney', () => {
         year(2025, 'Explorer'),
         year(2026, 'Open Source Contributor'),
       ])
-    ).toBe('Bounced back from a quiet year — now Open Source Contributor');
+    ).toBe('From a quiet year to Open Source Contributor');
   });
 
   it('picks slump when year 1 is active and year 3 is Quiet Year', () => {
