@@ -1,0 +1,100 @@
+import type { RawYearData } from './types';
+
+export interface OctokitLike {
+  rest: {
+    users: { getByUsername(params: { username: string }): Promise<{ data: { created_at: string } }> };
+    repos: {
+      listForUser(params: {
+        username: string;
+        per_page: number;
+      }): Promise<{ data: Array<{ name: string; created_at: string; pushed_at: string }> }>;
+      listLanguages(params: { owner: string; repo: string }): Promise<{ data: Record<string, number> }>;
+    };
+    search: {
+      issuesAndPullRequests(params: {
+        q: string;
+      }): Promise<{ data: { total_count: number; items?: Array<{ repository_url: string }> } }>;
+    };
+    activity: {
+      listStargazersForRepo(params: {
+        owner: string;
+        repo: string;
+        headers: Record<string, string>;
+        per_page: number;
+      }): Promise<{ data: Array<{ starred_at?: string }> }>;
+    };
+  };
+  graphql(query: string, variables: Record<string, unknown>): Promise<any>;
+}
+
+export async function fetchAccountCreatedYear(octokit: OctokitLike, username: string): Promise<number> {
+  const { data } = await octokit.rest.users.getByUsername({ username });
+  return new Date(data.created_at).getUTCFullYear();
+}
+
+const CONTRIBUTIONS_QUERY = `
+  query($username: String!, $from: DateTime!, $to: DateTime!) {
+    user(login: $username) {
+      contributionsCollection(from: $from, to: $to) {
+        contributionCalendar {
+          weeks { contributionDays { date contributionCount } }
+        }
+      }
+    }
+  }
+`;
+
+export async function fetchRawYear(octokit: OctokitLike, username: string, year: number): Promise<RawYearData> {
+  const { data: repoList } = await octokit.rest.repos.listForUser({ username, per_page: 100 });
+
+  const repos = await Promise.all(
+    repoList.map(async (repo) => {
+      const { data: languages } = await octokit.rest.repos.listLanguages({ owner: username, repo: repo.name });
+      return { createdAt: repo.created_at, pushedAt: repo.pushed_at, languages };
+    })
+  );
+
+  const from = `${year}-01-01T00:00:00Z`;
+  const to = `${year}-12-31T23:59:59Z`;
+  const dateRange = `${year}-01-01..${year}-12-31`;
+
+  const contributions = await octokit.graphql(CONTRIBUTIONS_QUERY, { username, from, to });
+  const contributionCalendar = contributions.user.contributionsCollection.contributionCalendar;
+
+  const { data: ownPRs } = await octokit.rest.search.issuesAndPullRequests({
+    q: `author:${username} type:pr created:${dateRange} user:${username}`,
+  });
+  const { data: externalPRs } = await octokit.rest.search.issuesAndPullRequests({
+    q: `author:${username} type:pr created:${dateRange} -user:${username}`,
+  });
+  const { data: reviews } = await octokit.rest.search.issuesAndPullRequests({
+    q: `reviewed-by:${username} type:pr created:${dateRange}`,
+  });
+  const externalRepoNames = new Set((externalPRs.items ?? []).map((item) => item.repository_url));
+
+  let starsGainedThisYear = 0;
+  for (const repo of repoList) {
+    const { data: stargazers } = await octokit.rest.activity.listStargazersForRepo({
+      owner: username,
+      repo: repo.name,
+      headers: { accept: 'application/vnd.github.star+json' },
+      per_page: 100,
+    });
+    for (const s of stargazers) {
+      if (s.starred_at && new Date(s.starred_at).getUTCFullYear() === year) {
+        starsGainedThisYear++;
+      }
+    }
+  }
+
+  return {
+    year,
+    repos,
+    contributionCalendar,
+    ownPRCount: ownPRs.total_count,
+    externalPRCount: externalPRs.total_count,
+    externalRepoCount: externalRepoNames.size,
+    reviewCount: reviews.total_count,
+    starsGainedThisYear,
+  };
+}
