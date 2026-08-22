@@ -34,9 +34,10 @@ See [[github-journey-pin-mechanism]].
 **Archetype scope correction:** README's illustrative examples use flavorful composite labels
 ("Backend Builder", "Application Developer"). Those require knowing the user's *tech domain*
 (backend/frontend/etc.), which needs framework/library detection — explicitly v0.2 scope. For
-v0.1, the pin uses the five canonical Rule Engine archetypes from README section 12 directly,
-unadorned: **Explorer, Specialist, Builder, Open Source Contributor, Collaborator**. Composite
-domain-flavored labels come in v0.2 once framework detection exists.
+v0.1, archetype names stay domain-free (no "Backend"/"Application" prefixes), but the *set* of
+archetypes is not limited to README §12's original five — see §3 for the full v0.1 taxonomy,
+which adds five more derived purely from the four in-scope data axes (no framework detection
+needed). Composite domain-flavored labels come in v0.2 once framework detection exists.
 
 ## 3. Pin card format
 
@@ -50,18 +51,32 @@ domain-flavored labels come in v0.2 once framework detection exists.
 never a fabricated one. Two reason shapes:
 
 - **Language-driven** (Specialist): emoji mascot + language name, e.g. `🐍 Python`
-- **Metric-driven** (Explorer, Builder, Open Source Contributor, Collaborator): icon + signed count + short label, e.g. `🔀 +7 ext PRs`
+- **Metric-driven** (everything else): icon + signed count/value + short label, e.g. `🔀 +7 ext PRs`
 
-| Archetype | Rule Engine trigger (README §12) | Reason shown |
+v0.1 taxonomy — the original five from README §12, plus five more derived purely from the four
+in-scope data axes (Languages, Repos, Commits, PRs — no framework/library detection needed):
+
+| Archetype | Trigger | Reason shown |
 |---|---|---|
-| Explorer | `new_languages >= 3 AND breadth > threshold` | `🌱 +N langs` |
-| Specialist | `same_language >= 2y AND depth > threshold AND breadth < threshold` | `{lang emoji} {Language}` |
-| Builder | `owned_repos_active > threshold AND long_lived_projects > threshold` | `📦 N long-lived` |
-| Open Source Contributor | `external_prs > threshold AND external_repos > threshold` | `🔀 +N ext PRs` |
-| Collaborator | `(reviews + external_prs + issues)` increase significantly | `👀 +N reviews` |
+| Quiet Year | all axes well below the user's own multi-year baseline | `💤 low activity` |
+| Rising Star | stars gained this year jumps sharply vs. baseline | `⭐ +N stars` |
+| Collaborator | `(reviews + external_prs + issues)` increase significantly (README §12) | `👀 +N reviews` |
+| Open Source Contributor | `external_prs > threshold AND external_repos > threshold` (README §12) | `🔀 +N ext PRs` |
+| Builder | `owned_repos_active > threshold AND long_lived_projects > threshold` (README §12) | `📦 N long-lived` |
+| Creator | new repos created this year spikes, regardless of longevity (prototyping burst) | `🛠️ +N repos` |
+| Explorer | `new_languages >= 3 AND breadth > threshold` (README §12) | `🌱 +N langs` |
+| Polyglot | high breadth sustained across >= 2 consecutive years (vs. Explorer's single-year spike) | `🌐 N langs active` |
+| Specialist | `same_language >= 2y AND depth > threshold AND breadth < threshold` (README §12) | `{lang emoji} {Language}` |
+| Consistent | fallback — no other rule fires, but real commit activity exists | `🔥 N-day streak` |
 
-Evaluation order when a year matches more than one rule (highest precedence first):
-`Collaborator > Open Source Contributor > Builder > Specialist > Explorer`.
+Evaluation order when a year matches more than one rule (highest precedence first, first match
+wins): `Quiet Year > Rising Star > Collaborator > Open Source Contributor > Builder > Creator >
+Explorer > Polyglot > Specialist > Consistent`.
+
+Quiet Year sits first as a floor check — the project's disclaimer stance (README §10: "these
+scores... not actual engineering ability") extends to not dressing up a genuinely inactive year
+as something it wasn't. Consistent sits last as the catch-all so any year with real activity still
+gets a label instead of falling through.
 
 Language mascot emoji: Python 🐍, Java ☕, JavaScript 💛, TypeScript 🔷, Go 🐹, Rust 🦀,
 C/C++ ➕, C# 🎯, Kotlin 🟣, Swift 🐦 (extend as needed — see README §5.1 language list).
@@ -76,7 +91,7 @@ Example (5 years of real signal):
 ```
 2022 Explorer · 🌱 +3 langs
 2023 Specialist · 🐍 Python
-2024 Specialist · 🔷 TypeScript
+2024 Rising Star · ⭐ +58 stars
 2025 Open Source Contributor · 🔀 +7 ext PRs
 2026 ● Builder · 📦 5 long-lived
 ```
@@ -113,7 +128,8 @@ same operational shape as github-readme-zodiac.
 ```
 
 Components (Node.js + TypeScript, per earlier decision):
-- `src/fetch/` — Octokit REST (repos, languages-per-repo, PR search) + GraphQL
+- `src/fetch/` — Octokit REST (repos, languages-per-repo, PR search, starred-at timestamps via the
+  `application/vnd.github.star+json` media type to bucket stars gained by year) + GraphQL
   (`contributionsCollection`, queried per calendar year since the API caps ranges at 1 year)
 - `src/metrics/` — raw API responses → `YearlyMetrics` per year
 - `src/diff/` — `YearlyMetrics[]` → year-over-year deltas
@@ -139,34 +155,48 @@ interface YearlyMetrics {
   ownPRs: number;
   externalPRs: number;
   reviews: number;
+  starsGained: number;
 }
 
 type Reason =
   | { kind: 'language'; emoji: string; label: string }
   | { kind: 'metric'; icon: string; delta: number; label: string };
 
+type Archetype =
+  | 'Quiet Year' | 'Rising Star' | 'Collaborator' | 'Open Source Contributor' | 'Builder'
+  | 'Creator' | 'Explorer' | 'Polyglot' | 'Specialist' | 'Consistent';
+
 interface JourneyYear {
   year: number;
-  archetype: 'Explorer' | 'Specialist' | 'Builder' | 'Open Source Contributor' | 'Collaborator';
+  archetype: Archetype;
   reason: Reason;
   isCurrent: boolean;
 }
 ```
 
+`Quiet Year`, `Rising Star`, and `Polyglot` compare each year against the user's own multi-year
+baseline (rolling average of the *other* analyzed years), not just the adjacent-year delta — so
+`src/diff/` produces both a year-over-year delta and a per-metric baseline average for the whole
+window, and the Rule Engine reads whichever it needs per rule.
+
 ## 7. Error handling / edge cases
 
 - Account younger than 5 years: use actual account-creation year as the start, not a padded/fake
   history.
-- A year with no qualifying rule match: fall back to the lowest-precedence rule (Explorer) using
-  whatever breadth/depth signal exists that year, rather than omitting the year (the pin's 5 lines
-  are fixed to 5 years; the gist body already only covers `min(5, account_age_years)` years, so no
-  padding is needed — just fewer lines if the account is under 5 years old).
+- A year with no qualifying rule match falls to `Consistent`, the lowest-precedence catch-all — no
+  year is ever omitted (the pin's 5 lines are fixed to 5 years; the gist body already only covers
+  `min(5, account_age_years)` years, so no padding is needed — just fewer lines if the account is
+  under 5 years old).
+- Fewer than 2 analyzed years (brand-new account): baseline/delta-based rules (`Quiet Year`,
+  `Rising Star`, `Polyglot`) have no prior year to compare against and are skipped for that year;
+  only single-year rules (`Explorer`, `Specialist`, `Builder`, `Creator`, `Open Source Contributor`,
+  `Collaborator`, `Consistent`) apply.
 - GitHub API rate limiting: fail with a clear CLI error; no silent partial output.
 
 ## 8. Testing
 
-- Rule Engine: pure-function unit tests per archetype using fixture `YearlyMetrics`/deltas,
-  including precedence-order cases (a year matching two rules at once).
+- Rule Engine: pure-function unit tests per archetype (all 10) using fixture `YearlyMetrics`/deltas/
+  baselines, including precedence-order cases (a year matching two rules at once).
 - Renderer: exact-text snapshot tests for the 5-line headline (including width/emoji handling)
   and the full Gist body.
 - Fetcher/metrics: not unit-testable against live GitHub without a fixture/mock layer — use
@@ -182,6 +212,6 @@ work — they don't represent the actual delivery mechanism.
 
 - Running the CLI against a real GitHub username with a valid token produces a 5-line pin headline
   and full Gist body matching the format above, computed from that user's real yearly activity.
-- Rule Engine unit tests cover all 5 archetypes and the precedence order.
+- Rule Engine unit tests cover all 10 archetypes and the precedence order.
 - The GitHub Action workflow, given `GH_TOKEN`/`GIST_ID` secrets and a `USERNAME` variable on a
   forked repo, updates the target Gist on `workflow_dispatch` and on schedule.
