@@ -1,10 +1,11 @@
+import { fileURLToPath } from 'node:url';
 import { Octokit } from '@octokit/rest';
 import { fetchAccountCreatedYear, fetchRawYear, type OctokitLike } from './fetch/github';
 import { toYearlyMetrics } from './metrics';
 import { buildYearContexts } from './diff';
 import { evaluateYear } from './rules';
 import { renderPinHeadline, renderGistBody } from './render';
-import { updateGist } from './gist';
+import { updateGist, type GistOctokitLike } from './gist';
 import type { YearlyMetrics } from './types';
 
 export interface JourneyResult {
@@ -61,14 +62,14 @@ async function main() {
   });
 
   if (gistId && token) {
-    await updateGist(octokit as any, gistId, 'journey.md', result.gistBody);
+    await updateGist(octokit as unknown as GistOctokitLike, gistId, 'journey.md', result.gistBody);
     console.log(`Updated gist ${gistId}`);
   } else {
     console.log(result.gistBody);
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);
