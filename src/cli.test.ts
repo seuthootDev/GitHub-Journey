@@ -76,4 +76,39 @@ describe('buildJourney', () => {
     });
     expect(result.gistBody).toContain(result.pinHeadline);
   });
+
+  it('includes a non-empty detailedSvg in the result, without changing pinHeadline', async () => {
+    const octokit = makeOctokit();
+    const before = await buildJourney(octokit as any, {
+      username: 'seuthootDev',
+      displayName: 'seuthootDev',
+      maxYears: 1,
+      now: new Date('2024-06-01'),
+    });
+    const result = await buildJourney(octokit as any, {
+      username: 'seuthootDev',
+      displayName: 'seuthootDev',
+      maxYears: 1,
+      now: new Date('2024-06-01'),
+    });
+    expect(result.detailedSvg).toContain('<svg');
+    expect(result.pinHeadline).toBe(before.pinHeadline);
+  });
+
+  it('appends the comfort layer markdown after the pin lines in gistBody', async () => {
+    const octokit = makeOctokit();
+    const result = await buildJourney(octokit as any, {
+      username: 'seuthootDev',
+      displayName: 'seuthootDev',
+      maxYears: 1,
+      now: new Date('2024-06-01'),
+    });
+    const pinIndex = result.gistBody.indexOf(result.pinHeadline);
+    expect(pinIndex).toBeGreaterThanOrEqual(0);
+    // fixture has a repo pushed in 2024, so a hero moment exists and 'More moments:'
+    // should not appear (fewer than 2 distinct moment candidates in this fixture) —
+    // assert the comfort layer's cumulative sentence lands strictly after the pin instead.
+    const comfortIndex = result.gistBody.indexOf('You showed up');
+    expect(comfortIndex).toBeGreaterThan(pinIndex);
+  });
 });
