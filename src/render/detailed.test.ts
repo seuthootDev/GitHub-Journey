@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { renderHeroSection, renderDetailedSvg } from './detailed';
+import { renderHeroSection, renderDetailedSvg, heroSectionHeight } from './detailed';
+import { selectHero, selectMoreMoments } from '../detailed/moments';
 import type { DetailedYearData } from '../detailed/types';
 import type { JourneyYear } from '../types';
 
@@ -101,5 +102,61 @@ describe('renderDetailedSvg', () => {
       [journeyYearFixture, { ...journeyYearFixture, year: 2025 }]
     );
     expect(svg.indexOf('2024 Quiet Year')).toBeLessThan(svg.indexOf('2025 Quiet Year'));
+  });
+
+  it('positions the ANALYSIS divider at heroSectionHeight(momentsCount) + 26 - 16, not double-offset by an extra 90px', () => {
+    const years = [detailedYearFixture(2024)];
+    const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', years, [journeyYearFixture]);
+    const hero = selectHero(years);
+    const moments = hero ? selectMoreMoments(years, hero) : [];
+    const expectedAnalysisLabelY = heroSectionHeight(moments.length) + 26;
+    const expectedDividerY = expectedAnalysisLabelY - 16;
+    const wrongDividerY = 90 + expectedDividerY; // the bug: an extra, spurious +90 baked in
+
+    expect(svg).toContain(`<line x1="28" y1="${expectedDividerY}" x2="812" y2="${expectedDividerY}" stroke="#ded3bd"/>`);
+    expect(svg).not.toContain(`<line x1="28" y1="${wrongDividerY}"`);
+  });
+
+  it('adds a report-card reading line naming the year/column with fewer highs, and one with more, when at least two years each hold a star', () => {
+    const yearLow = {
+      ...detailedYearFixture(2024),
+      metrics: { ...detailedYearFixture(2024).metrics, commitDays: 50, reposActive: 1, longLivedRepoCount: 0, ownPRs: 0, externalPRs: 0, reviews: 0, starsGained: 0, reposCreated: 1 },
+    };
+    const yearHigh = {
+      ...detailedYearFixture(2025),
+      metrics: { ...detailedYearFixture(2025).metrics, commitDays: 10, reposActive: 5, longLivedRepoCount: 3, ownPRs: 5, externalPRs: 3, reviews: 6, starsGained: 12, reposCreated: 4 },
+      ownMergedPRs: [{ repo: 'a/b', date: '2025-03-01' }, { repo: 'a/b', date: '2025-04-01' }],
+      externalMergedPRs: [{ repo: 'c/d', date: '2025-05-01' }],
+    };
+    const svg = renderDetailedSvg(
+      'seuthootDev',
+      'Quiet Year',
+      [yearLow, yearHigh],
+      [journeyYearFixture, { ...journeyYearFixture, year: 2025 }]
+    );
+    expect(svg).toContain('★ is the high mark in that column.');
+    // 2024 uniquely holds the "days" high (50 > 10); 2025 holds every other column's high.
+    expect(svg).toContain('2024 had the most commit days. 2025 took the rest.');
+  });
+
+  it('falls back to comeback framing when only one (later) year holds every star and its days exceed the earlier year', () => {
+    const yearFloor = {
+      ...detailedYearFixture(2024),
+      metrics: { ...detailedYearFixture(2024).metrics, commitDays: 5, reposActive: 1, longLivedRepoCount: 0, ownPRs: 0, externalPRs: 0, reviews: 0, starsGained: 0, reposCreated: 1 },
+    };
+    const yearPeak = {
+      ...detailedYearFixture(2025),
+      metrics: { ...detailedYearFixture(2025).metrics, commitDays: 50, reposActive: 5, longLivedRepoCount: 3, ownPRs: 5, externalPRs: 3, reviews: 6, starsGained: 12, reposCreated: 4 },
+      ownMergedPRs: [{ repo: 'a/b', date: '2025-03-01' }, { repo: 'a/b', date: '2025-04-01' }],
+      externalMergedPRs: [{ repo: 'c/d', date: '2025-05-01' }],
+    };
+    const svg = renderDetailedSvg(
+      'seuthootDev',
+      'Quiet Year',
+      [yearFloor, yearPeak],
+      [journeyYearFixture, { ...journeyYearFixture, year: 2025 }]
+    );
+    expect(svg).toContain('2024 is the floor, not a failure — 5 → 50 commit days is the story.');
+    expect(svg).not.toContain('led every column this window.');
   });
 });

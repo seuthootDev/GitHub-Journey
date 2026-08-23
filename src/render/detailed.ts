@@ -1,6 +1,6 @@
 import { chartGridSlots, buildPolylinePoints, buildBars, type PlotArea } from './chart';
 import { bucketByMonth, bucketCumulativeByMonth } from '../detailed/monthly';
-import { buildReportCard } from '../detailed/reportcard';
+import { buildReportCard, type ReportCardRow } from '../detailed/reportcard';
 import { buildYearNote } from '../detailed/notes';
 import { selectHero, selectMoreMoments, type HeroMoment, type Moment } from '../detailed/moments';
 import { renderCumulativeSentence } from '../detailed/sentence';
@@ -219,6 +219,54 @@ function renderChartsGrid(years: DetailedYearData[], startY: number): { svg: str
   return { svg, endY: lastRowY + ROW_HEIGHT - 10 };
 }
 
+const FRIENDLY_COLUMN: Record<string, string> = {
+  reposActive: 'active repos',
+  longLived: 'long-lived repos',
+  days: 'commit days',
+  ownPRs: 'own PRs',
+  externalPRs: 'external PRs',
+  ownMerged: 'own merges',
+  externalMerged: 'external merges',
+  reviews: 'reviews',
+  stars: 'stars',
+  reposCreated: 'repos created',
+};
+
+function reportCardReading(rows: ReportCardRow[], highs: Set<string>): [string, string] {
+  const line1 = '★ is the high mark in that column.';
+
+  const highCountByYear = new Map<number, number>();
+  const columnsByYear = new Map<number, string[]>();
+  for (const key of highs) {
+    const [yearStr, col] = key.split(':');
+    const year = Number(yearStr);
+    highCountByYear.set(year, (highCountByYear.get(year) ?? 0) + 1);
+    columnsByYear.set(year, [...(columnsByYear.get(year) ?? []), col]);
+  }
+
+  const yearsWithHighs = [...highCountByYear.keys()];
+  let line2: string;
+  if (yearsWithHighs.length >= 2) {
+    const sorted = [...yearsWithHighs].sort((a, b) => highCountByYear.get(a)! - highCountByYear.get(b)!);
+    const otherYear = sorted[0];
+    const topYear = sorted[sorted.length - 1];
+    const otherColumn = columnsByYear.get(otherYear)![0];
+    line2 = `${otherYear} had the most ${FRIENDLY_COLUMN[otherColumn] ?? otherColumn}. ${topYear} took the rest.`;
+  } else {
+    const first = rows[0];
+    const last = rows[rows.length - 1];
+    if (last.days > first.days) {
+      line2 = `${first.year} is the floor, not a failure — ${first.days} → ${last.days} commit days is the story.`;
+    } else if (yearsWithHighs.length === 1) {
+      line2 = `${yearsWithHighs[0]} led every column this window.`;
+    } else {
+      line2 = 'Every column stayed flat this window.';
+    }
+  }
+
+  return [line1, line2];
+}
+
 function renderReportCard(years: DetailedYearData[], startY: number): { svg: string; endY: number } {
   const { rows, highs } = buildReportCard(years);
   const headerY = startY + 15;
@@ -256,12 +304,16 @@ function renderReportCard(years: DetailedYearData[], startY: number): { svg: str
     })
     .join('');
   const tableHeight = 28 + rows.length * rowHeight;
+  const tableEndY = startY + 12 + tableHeight;
+  const [reading1, reading2] = reportCardReading(rows, highs);
   const svg = `
   <text x="${MARGIN}" y="${startY}" font-size="11" font-weight="600" fill="${INK_LABEL}">REPORT CARD</text>
   <rect x="${MARGIN}" y="${startY + 12}" width="${CONTENT_WIDTH}" height="${tableHeight}" rx="6" fill="#fffdf8" stroke="#ded3bd"/>
   ${header}
-  ${dataRows}`;
-  return { svg, endY: startY + 12 + tableHeight + 10 };
+  ${dataRows}
+  <text x="${MARGIN}" y="${tableEndY + 20}" font-size="12" fill="${INK_SECONDARY}">${escapeXml(reading1)}</text>
+  <text x="${MARGIN}" y="${tableEndY + 38}" font-size="12" fill="${INK_SECONDARY}">${escapeXml(reading2)}</text>`;
+  return { svg, endY: tableEndY + 38 + 10 };
 }
 
 function renderYearNotes(
@@ -312,7 +364,7 @@ export function renderDetailedSvg(
 
   const heroSvg = hero ? renderHeroSection(hero, moments, cumulativeLines) : '';
   const heroHeight = hero ? heroSectionHeight(moments.length) : 90;
-  const analysisLabelY = 90 + heroHeight + 26;
+  const analysisLabelY = heroHeight + 26;
   const chartsStartY = analysisLabelY + 16;
 
   const { svg: chartsSvg, endY: afterCharts } = renderChartsGrid(years, chartsStartY);
