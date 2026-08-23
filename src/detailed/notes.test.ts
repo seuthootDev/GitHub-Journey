@@ -53,4 +53,53 @@ describe('buildYearNote', () => {
     );
     expect(note.lines.join(' ')).toMatch(/pull request/i);
   });
+
+  it('names distinct external repos when contributor year has merged PRs', () => {
+    const note = buildYearNote(
+      yearFixture(
+        { externalPRs: 5, commitDays: 50 },
+        {
+          externalMergedPRs: [
+            { repo: 'react', date: '2024-01-15' },
+            { repo: 'next', date: '2024-03-20' },
+          ],
+        }
+      ),
+      'Open Source Contributor'
+    );
+    expect(note.lines[0]).toMatch(/react/);
+    expect(note.lines[0]).toMatch(/next/);
+    expect(note.lines[0]).toMatch(/External PRs landed/);
+  });
+
+  it('names created repos when builder year has new repos', () => {
+    const note = buildYearNote(
+      yearFixture(
+        { reposCreated: 2, commitDays: 80, longLivedRepoCount: 1, languageBytes: { TypeScript: 5000 } },
+        {
+          repos: [
+            { name: 'my-cli', createdAt: '2024-01-10T00:00:00Z', pushedAt: '2024-12-31T00:00:00Z' },
+            { name: 'my-lib', createdAt: '2024-05-15T00:00:00Z', pushedAt: '2024-12-31T00:00:00Z' },
+          ],
+        }
+      ),
+      'Builder'
+    );
+    expect(note.lines[0]).toMatch(/my-cli/);
+    expect(note.lines[0]).toMatch(/my-lib/);
+    expect(note.lines[0]).toMatch(/2 repos created/);
+  });
+
+  it('handles edge case: reposCreated > 0 but no matching repos in array', () => {
+    const note = buildYearNote(
+      yearFixture(
+        { reposCreated: 1, commitDays: 30, longLivedRepoCount: 0 },
+        { repos: [] } // Empty repos array despite reposCreated: 1
+      ),
+      'Builder'
+    );
+    // Should not crash, and should still have sensible output
+    expect(note.lines[0]).toMatch(/1 repo created/);
+    expect(note.lines[0]).not.toMatch(/undefined|null/);
+  });
 });
