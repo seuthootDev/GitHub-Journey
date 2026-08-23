@@ -190,3 +190,42 @@ describe('selectMoreMoments later star cluster (count-aware why)', () => {
     expect(laterStarMoment?.why).toBe('2 more stars land');
   });
 });
+
+describe('selectMoreMoments peak-merge-month date/repo pairing (bug 1 regression)', () => {
+  const hero = { date: '2024-09-01', name: 'seuthootDev' };
+
+  it('pairs the dominant repo with one of ITS OWN event dates, not the first event in array order within the peak month', () => {
+    const years = [
+      yearFixture(2026, {
+        ownMergedPRs: [
+          { repo: 'other/repo', date: '2026-03-01T00:00:00Z' },
+          { repo: 'dominant/repo', date: '2026-03-05T00:00:00Z' },
+          { repo: 'dominant/repo', date: '2026-03-12T00:00:00Z' },
+        ],
+      }),
+    ];
+    const moments = selectMoreMoments(years, hero);
+    const peakMonthMoment = moments.find((m) => m.why.startsWith('peak merge month'));
+    expect(peakMonthMoment).toEqual({
+      date: '2026-03-05',
+      name: 'dominant/repo',
+      why: 'peak merge month (3 merged)',
+    });
+  });
+});
+
+describe('selectMoreMoments hero resurfacing (bug 2 regression)', () => {
+  it('excludes any candidate whose name matches the hero, even under a different date', () => {
+    const hero = { date: '2024-09-01', name: 'seuthootDev' };
+    const years = [
+      yearFixture(2024, {
+        repos: [{ name: 'seuthootDev', createdAt: '2024-09-01T00:00:00Z', pushedAt: '2026-06-01T00:00:00Z' }],
+      }),
+      yearFixture(2025),
+      yearFixture(2026),
+    ];
+    const moments = selectMoreMoments(years, hero);
+    expect(moments.some((m) => m.name === hero.name)).toBe(false);
+    expect(moments).toEqual([]);
+  });
+});

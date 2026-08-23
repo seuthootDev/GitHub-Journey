@@ -42,6 +42,7 @@ export function selectMoreMoments(years: DetailedYearData[], hero: HeroMoment | 
 
   function add(moment: Moment | null) {
     if (!moment) return;
+    if (hero && moment.name === hero.name) return;
     const key = `${moment.name}|${moment.date}`;
     if (seen.has(key)) return;
     seen.add(key);
@@ -87,7 +88,8 @@ export function selectMoreMoments(years: DetailedYearData[], hero: HeroMoment | 
       const repoCounts = new Map<string, number>();
       for (const e of peakEvents) repoCounts.set(e.repo, (repoCounts.get(e.repo) ?? 0) + 1);
       const dominantRepo = [...repoCounts.entries()].reduce((a, b) => (b[1] > a[1] ? b : a))[0];
-      add({ date: toDateOnly(peakEvents[0].date), name: dominantRepo, why: `peak merge month (${peakEvents.length} merged)` });
+      const dominantEvents = peakEvents.filter((e) => e.repo === dominantRepo);
+      add({ date: toDateOnly(dominantEvents[0].date), name: dominantRepo, why: `peak merge month (${peakEvents.length} merged)` });
     }
   }
 
