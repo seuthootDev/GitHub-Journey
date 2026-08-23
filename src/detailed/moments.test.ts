@@ -86,3 +86,107 @@ describe('selectMoreMoments', () => {
     expect(moments).toEqual([]);
   });
 });
+
+describe('selectMoreMoments tier 1 candidate 4 (peak merge month)', () => {
+  const hero = { date: '2024-09-01', name: 'seuthootDev' };
+
+  it('fires and picks the dominant repo in the peak merge month, from own+ext merged events across multiple months and repos', () => {
+    const years = [
+      yearFixture(2026, {
+        externalMergedPRs: [{ repo: 'b/single-ext', date: '2026-01-01T00:00:00Z' }],
+        ownMergedPRs: [
+          { repo: 'a/first', date: '2026-01-05T00:00:00Z' },
+          { repo: 'c/dominant', date: '2026-03-02T00:00:00Z' },
+          { repo: 'c/dominant', date: '2026-03-10T00:00:00Z' },
+          { repo: 'd/other', date: '2026-03-15T00:00:00Z' },
+        ],
+      }),
+    ];
+    const moments = selectMoreMoments(years, hero);
+    expect(moments).toEqual([
+      { date: '2026-01-01', name: 'b/single-ext', why: 'first external PR, merged' },
+      { date: '2026-01-05', name: 'a/first', why: 'first own PR merged' },
+      { date: '2026-03-02', name: 'c/dominant', why: 'peak merge month (3 merged)' },
+    ]);
+  });
+});
+
+describe('selectMoreMoments 7-day proximity to hero', () => {
+  const hero = { date: '2024-09-01', name: 'seuthootDev' };
+
+  it('skips a first contribution day within 7 days of the hero date', () => {
+    const years = [yearFixture(2024, { firstContributionDay: '2024-09-05' })];
+    const moments = selectMoreMoments(years, hero);
+    expect(moments).toEqual([]);
+  });
+
+  it('keeps a first contribution day 8+ days from the hero date', () => {
+    const years = [yearFixture(2024, { firstContributionDay: '2024-09-10' })];
+    const moments = selectMoreMoments(years, hero);
+    expect(moments).toEqual([{ date: '2024-09-10', name: '2024-09-10', why: 'first contribution day' }]);
+  });
+});
+
+describe('selectMoreMoments tier 2: longest-lived repo', () => {
+  const hero = { date: '2024-09-01', name: 'seuthootDev' };
+
+  it('fires when a repo has been alive >= 365 days and was pushed within the window years', () => {
+    const years = [
+      yearFixture(2024),
+      yearFixture(2025, {
+        repos: [{ name: 'long-lived-repo', createdAt: '2023-01-01T00:00:00Z', pushedAt: '2025-06-01T00:00:00Z' }],
+      }),
+    ];
+    const moments = selectMoreMoments(years, hero);
+    expect(moments).toHaveLength(1);
+    expect(moments[0].date).toBe('2025-06-01');
+    expect(moments[0].name).toBe('long-lived-repo');
+    expect(moments[0].why).toMatch(/^longest-lived repo \(\d+ months\)$/);
+  });
+});
+
+describe('selectMoreMoments tier 2: peak commit-days month', () => {
+  const hero = { date: '2024-09-01', name: 'seuthootDev' };
+
+  it('fires and picks the month with the most commit days', () => {
+    const years = [
+      yearFixture(2025, { commitDayDates: ['2025-03-01', '2025-03-05', '2025-03-10'] }),
+      yearFixture(2026, { commitDayDates: ['2026-01-01', '2026-01-02'] }),
+    ];
+    const moments = selectMoreMoments(years, hero);
+    expect(moments).toEqual([{ date: '2025-03-01', name: '2025-03', why: 'busiest month (3 commit days)' }]);
+  });
+});
+
+describe('selectMoreMoments later star cluster (count-aware why)', () => {
+  const hero = { date: '2024-09-01', name: 'seuthootDev' };
+
+  it('says "more stars land" (unchanged) when the later-star repo has exactly 1 star', () => {
+    const years = [
+      yearFixture(2026, {
+        starEvents: [
+          { repo: 'x/first', starredAt: '2026-01-01T00:00:00Z' },
+          { repo: 'x/second', starredAt: '2026-01-02T00:00:00Z' },
+        ],
+      }),
+    ];
+    const moments = selectMoreMoments(years, hero);
+    const laterStarMoment = moments.find((m) => m.name === 'x/second');
+    expect(laterStarMoment?.why).toBe('more stars land');
+  });
+
+  it('says "N more stars land" when the later-star repo has more than 1 star', () => {
+    const years = [
+      yearFixture(2026, {
+        starEvents: [
+          { repo: 'x/first', starredAt: '2026-01-01T00:00:00Z' },
+          { repo: 'x/second', starredAt: '2026-01-02T00:00:00Z' },
+          { repo: 'x/second', starredAt: '2026-01-03T00:00:00Z' },
+        ],
+      }),
+    ];
+    const moments = selectMoreMoments(years, hero);
+    const laterStarMoment = moments.find((m) => m.name === 'x/second');
+    expect(laterStarMoment?.why).toBe('2 more stars land');
+  });
+});
