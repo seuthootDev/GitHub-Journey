@@ -159,16 +159,130 @@ describe('fetchRawYear', () => {
               data: {
                 total_count: 2,
                 items: [
-                  { repository_url: 'https://api.github.com/repos/foo/bar' },
-                  { repository_url: 'https://api.github.com/repos/foo/bar' },
+                  { repository_url: 'https://api.github.com/repos/foo/bar', created_at: '2024-01-01T00:00:00Z' },
+                  { repository_url: 'https://api.github.com/repos/foo/bar', created_at: '2024-01-02T00:00:00Z' },
                 ],
               },
             }) // external PRs
-            .mockResolvedValueOnce({ data: { total_count: 0, items: [] } }), // reviews
+            .mockResolvedValueOnce({ data: { total_count: 0, items: [] } }) // reviews
+            .mockResolvedValueOnce({ data: { total_count: 0, items: [] } }) // ownMerged
+            .mockResolvedValueOnce({ data: { total_count: 0, items: [] } }), // externalMerged
         },
       },
     });
     const result = await fetchRawYear(octokit as any, 'seuthootDev', 2024);
     expect(result.externalRepoCount).toBe(1);
+  });
+
+  it('captures merged own/external PR events with repo and merged date', async () => {
+    const octokit = makeOctokit({
+      rest: {
+        ...makeOctokit().rest,
+        search: {
+          issuesAndPullRequests: vi.fn((params: { q: string }) => {
+            if (params.q.includes('is:merged') && params.q.includes('-user:seuthootDev')) {
+              return Promise.resolve({
+                data: {
+                  total_count: 1,
+                  items: [
+                    {
+                      repository_url: 'https://api.github.com/repos/someone-else/Distributed_MES',
+                      created_at: '2026-01-05T00:00:00Z',
+                      pull_request: { merged_at: '2026-01-10T00:00:00Z' },
+                    },
+                  ],
+                },
+              });
+            }
+            if (params.q.includes('is:merged') && params.q.includes('user:seuthootDev')) {
+              return Promise.resolve({
+                data: {
+                  total_count: 1,
+                  items: [
+                    {
+                      repository_url: 'https://api.github.com/repos/seuthootDev/hanghae99-backend-week1',
+                      created_at: '2025-07-01T00:00:00Z',
+                      pull_request: { merged_at: '2025-07-03T00:00:00Z' },
+                    },
+                  ],
+                },
+              });
+            }
+            return Promise.resolve({ data: { total_count: 0, items: [] } });
+          }),
+        },
+      },
+    });
+
+    const result = await fetchRawYear(octokit as any, 'seuthootDev', 2026);
+
+    expect(result.ownMergedPRs).toEqual([
+      { repo: 'seuthootDev/hanghae99-backend-week1', date: '2025-07-03T00:00:00Z' },
+    ]);
+    expect(result.externalMergedPRs).toEqual([
+      { repo: 'someone-else/Distributed_MES', date: '2026-01-10T00:00:00Z' },
+    ]);
+  });
+
+  it('captures star events (repo + starred_at) alongside the existing yearly count', async () => {
+    const octokit = makeOctokit({
+      rest: {
+        ...makeOctokit().rest,
+        repos: {
+          ...makeOctokit().rest.repos,
+          listForUser: vi
+            .fn()
+            .mockResolvedValue({
+              data: [
+                { name: 'qml-vtk-python-pyside6', created_at: '2025-01-01T00:00:00Z', pushed_at: '2025-06-01T00:00:00Z', fork: false },
+              ],
+            }),
+        },
+        activity: {
+          listStargazersForRepo: vi
+            .fn()
+            .mockResolvedValue({ data: [{ starred_at: '2026-02-27T00:00:00Z' }] }),
+        },
+      },
+    });
+
+    const result = await fetchRawYear(octokit as any, 'seuthootDev', 2026);
+
+    expect(result.starEvents).toEqual([
+      { repo: 'qml-vtk-python-pyside6', starredAt: '2026-02-27T00:00:00Z' },
+    ]);
+  });
+
+  it('captures ownPROpenedEvents with repo and creation date', async () => {
+    const octokit = makeOctokit({
+      rest: {
+        ...makeOctokit().rest,
+        search: {
+          issuesAndPullRequests: vi
+            .fn()
+            .mockResolvedValueOnce({
+              data: {
+                total_count: 1,
+                items: [
+                  {
+                    repository_url: 'https://api.github.com/repos/seuthootDev/proj-a',
+                    created_at: '2024-01-15T00:00:00Z',
+                  },
+                ],
+              },
+            }) // own PRs
+            .mockResolvedValueOnce({ data: { total_count: 0, items: [] } }) // external PRs
+            .mockResolvedValueOnce({ data: { total_count: 0, items: [] } }) // reviews
+            .mockResolvedValueOnce({ data: { total_count: 0, items: [] } }) // ownMerged
+            .mockResolvedValueOnce({ data: { total_count: 0, items: [] } }), // externalMerged
+        },
+      },
+    });
+
+    const result = await fetchRawYear(octokit as any, 'seuthootDev', 2024);
+
+    expect(result.ownPROpenedEvents).toEqual([
+      { repo: 'seuthootDev/proj-a', date: '2024-01-15T00:00:00Z' },
+    ]);
   });
 });

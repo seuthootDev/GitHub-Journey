@@ -13,7 +13,17 @@ export interface OctokitLike {
     search: {
       issuesAndPullRequests(params: {
         q: string;
-      }): Promise<{ data: { total_count: number; items?: Array<{ repository_url: string }> } }>;
+        per_page?: number;
+      }): Promise<{
+        data: {
+          total_count: number;
+          items?: Array<{
+            repository_url: string;
+            created_at: string;
+            pull_request?: { merged_at: string | null };
+          }>;
+        };
+      }>;
     };
     activity: {
       listStargazersForRepo(params: {
@@ -34,6 +44,18 @@ export async function fetchAccountCreatedYear(octokit: OctokitLike, username: st
 
 function isNotFound(err: unknown): boolean {
   return typeof err === 'object' && err !== null && (err as { status?: unknown }).status === 404;
+}
+
+function repoNameFromUrl(repositoryUrl: string): string {
+  return repositoryUrl.replace('https://api.github.com/repos/', '');
+}
+
+function mergedEvents(items: Array<{ repository_url: string; pull_request?: { merged_at: string | null } }> = []) {
+  return items
+    .filter((item): item is typeof item & { pull_request: { merged_at: string } } =>
+      Boolean(item.pull_request?.merged_at)
+    )
+    .map((item) => ({ repo: repoNameFromUrl(item.repository_url), date: item.pull_request.merged_at }));
 }
 
 const CONTRIBUTIONS_QUERY = `
@@ -83,16 +105,28 @@ export async function fetchRawYear(octokit: OctokitLike, username: string, year:
 
   const { data: ownPRs } = await octokit.rest.search.issuesAndPullRequests({
     q: `author:${username} type:pr created:${dateRange} user:${username}`,
+    per_page: 100,
   });
   const { data: externalPRs } = await octokit.rest.search.issuesAndPullRequests({
     q: `author:${username} type:pr created:${dateRange} -user:${username}`,
+    per_page: 100,
   });
   const { data: reviews } = await octokit.rest.search.issuesAndPullRequests({
     q: `reviewed-by:${username} type:pr created:${dateRange}`,
+    per_page: 100,
+  });
+  const { data: ownMerged } = await octokit.rest.search.issuesAndPullRequests({
+    q: `author:${username} type:pr is:merged merged:${dateRange} user:${username}`,
+    per_page: 100,
+  });
+  const { data: externalMerged } = await octokit.rest.search.issuesAndPullRequests({
+    q: `author:${username} type:pr is:merged merged:${dateRange} -user:${username}`,
+    per_page: 100,
   });
   const externalRepoNames = new Set((externalPRs.items ?? []).map((item) => item.repository_url));
 
   let starsGainedThisYear = 0;
+  const starEvents: Array<{ repo: string; starredAt: string }> = [];
   for (const repo of repoList) {
     let stargazers: Array<{ starred_at?: string }>;
     try {
@@ -109,6 +143,7 @@ export async function fetchRawYear(octokit: OctokitLike, username: string, year:
     for (const s of stargazers) {
       if (s.starred_at && new Date(s.starred_at).getUTCFullYear() === year) {
         starsGainedThisYear++;
+        starEvents.push({ repo: repo.name, starredAt: s.starred_at });
       }
     }
   }
@@ -123,5 +158,10 @@ export async function fetchRawYear(octokit: OctokitLike, username: string, year:
     externalRepoCount: externalRepoNames.size,
     reviewCount: reviews.total_count,
     starsGainedThisYear,
+    ownMergedPRs: mergedEvents(ownMerged.items),
+    externalMergedPRs: mergedEvents(externalMerged.items),
+    ownPROpenedEvents: (ownPRs.items ?? []).map((item) => ({ repo: repoNameFromUrl(item.repository_url), date: item.created_at })),
+    externalPROpenedEvents: (externalPRs.items ?? []).map((item) => ({ repo: repoNameFromUrl(item.repository_url), date: item.created_at })),
+    starEvents,
   };
 }
