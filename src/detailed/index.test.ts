@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { toDetailedYearData } from './index';
+import { toDetailedYearData, windowTotals } from './index';
 import type { RawYearData } from '../fetch/types';
 import type { YearlyMetrics } from '../types';
+import type { DetailedYearData } from './types';
 
 function rawFixture(overrides: Partial<RawYearData> = {}): RawYearData {
   return {
@@ -26,6 +27,8 @@ function rawFixture(overrides: Partial<RawYearData> = {}): RawYearData {
     starsGainedThisYear: 0,
     ownMergedPRs: [],
     externalMergedPRs: [],
+    ownMergedCount: 0,
+    externalMergedCount: 0,
     ownPROpenedEvents: [],
     externalPROpenedEvents: [],
     starEvents: [],
@@ -71,5 +74,49 @@ describe('toDetailedYearData', () => {
     const result = toDetailedYearData(raw, metricsFixture);
     expect(result.ownMergedPRs).toEqual([{ repo: 'a/b', date: '2024-05-01' }]);
     expect(result.metrics).toBe(metricsFixture);
+  });
+
+  it('passes through ownMergedCount/externalMergedCount straight from raw, even when they exceed the event array length', () => {
+    const raw = rawFixture({
+      ownMergedPRs: [{ repo: 'a/b', date: '2024-05-01' }],
+      ownMergedCount: 150,
+      externalMergedCount: 40,
+    });
+    const result = toDetailedYearData(raw, metricsFixture);
+    expect(result.ownMergedCount).toBe(150);
+    expect(result.externalMergedCount).toBe(40);
+  });
+});
+
+function windowTotalsYearFixture(overrides: Partial<DetailedYearData> = {}): DetailedYearData {
+  return {
+    year: 2024,
+    metrics: metricsFixture,
+    repos: [],
+    ownMergedPRs: [],
+    externalMergedPRs: [],
+    ownMergedCount: 0,
+    externalMergedCount: 0,
+    ownPROpenedEvents: [],
+    externalPROpenedEvents: [],
+    starEvents: [],
+    commitDayDates: [],
+    firstContributionDay: null,
+    ...overrides,
+  };
+}
+
+describe('windowTotals', () => {
+  it('sums ownMerged/externalMerged from ownMergedCount/externalMergedCount, not event array length', () => {
+    const years = [
+      windowTotalsYearFixture({
+        ownMergedPRs: Array.from({ length: 5 }, (_, i) => ({ repo: 'a', date: `2024-01-0${i + 1}` })),
+        ownMergedCount: 150,
+        externalMergedCount: 40,
+      }),
+    ];
+    const totals = windowTotals(years);
+    expect(totals.ownMerged).toBe(150);
+    expect(totals.externalMerged).toBe(40);
   });
 });

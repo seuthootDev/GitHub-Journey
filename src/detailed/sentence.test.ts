@@ -49,7 +49,7 @@ describe('renderCumulativeSentence', () => {
     });
     expect(lines).toEqual([
       'You showed up 241 days in 3 years.',
-      "124 pull requests opened, 106 merged — 23 in someone else's repo.",
+      '124 pull requests opened, 106 merged — 23 in someone else’s repo.',
     ]);
   });
 

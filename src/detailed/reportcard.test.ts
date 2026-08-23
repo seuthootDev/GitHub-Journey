@@ -25,6 +25,8 @@ function yearFixture(year: number, metricsOverrides: any, eventOverrides: Partia
     repos: [],
     ownMergedPRs: [],
     externalMergedPRs: [],
+    ownMergedCount: 0,
+    externalMergedCount: 0,
     ownPROpenedEvents: [],
     externalPROpenedEvents: [],
     starEvents: [],
@@ -60,10 +62,29 @@ describe('buildReportCard', () => {
       yearFixture(
         2026,
         { ownPRs: 63, externalPRs: 37, languageBytes: { GDScript: 100 } },
-        { ownMergedPRs: [{ repo: 'a', date: '2026-01-01' }], externalMergedPRs: [] }
+        { ownMergedPRs: [{ repo: 'a', date: '2026-01-01' }], externalMergedPRs: [], ownMergedCount: 1, externalMergedCount: 0 }
       ),
     ];
     const { rows } = buildReportCard(years);
     expect(rows[0]).toMatchObject({ year: 2026, language: 'GDScript', ownMerged: 1, externalMerged: 0 });
+  });
+
+  it('uses ownMergedCount/externalMergedCount (search total_count), not the possibly-capped event array length', () => {
+    const years = [
+      yearFixture(
+        2026,
+        {},
+        {
+          // Only a 100-item sample of a much larger merged-PR history — the report card
+          // column must reflect the real total, not this array's length.
+          ownMergedPRs: Array.from({ length: 100 }, (_, i) => ({ repo: 'a', date: `2026-01-${(i % 28) + 1}` })),
+          ownMergedCount: 150,
+          externalMergedCount: 40,
+        }
+      ),
+    ];
+    const { rows } = buildReportCard(years);
+    expect(rows[0].ownMerged).toBe(150);
+    expect(rows[0].externalMerged).toBe(40);
   });
 });

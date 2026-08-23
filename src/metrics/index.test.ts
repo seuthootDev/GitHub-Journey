@@ -15,6 +15,8 @@ function raw(overrides: Partial<RawYearData>): RawYearData {
     starsGainedThisYear: 0,
     ownMergedPRs: [],
     externalMergedPRs: [],
+    ownMergedCount: 0,
+    externalMergedCount: 0,
     ownPROpenedEvents: [],
     externalPROpenedEvents: [],
     starEvents: [],

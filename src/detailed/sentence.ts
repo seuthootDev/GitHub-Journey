@@ -18,7 +18,7 @@ export function renderCumulativeSentence(input: CumulativeInput): string[] {
 
   let second: string;
   if (input.externalMerged > 0) {
-    second = `${opened} pull requests opened, ${merged} merged — ${input.externalMerged} in someone else's repo.`;
+    second = `${opened} pull requests opened, ${merged} merged — ${input.externalMerged} in someone else’s repo.`;
   } else if (input.ownMerged > 0) {
     second = `${merged} of ${opened} pull requests merged, all in your own repos.`;
   } else if (opened > 0) {

@@ -7,7 +7,7 @@ import { evaluateYear } from './rules';
 import { renderPinHeadline, renderGistBody } from './render';
 import { updateGist, type GistOctokitLike } from './gist';
 import type { YearlyMetrics } from './types';
-import { toDetailedYearData } from './detailed';
+import { toDetailedYearData, windowTotals } from './detailed';
 import { renderDetailedSvg } from './render/detailed';
 import { renderComfortLayerMarkdown } from './render/detailedMarkdown';
 import { selectHero, selectMoreMoments } from './detailed/moments';
@@ -19,6 +19,22 @@ export interface JourneyResult {
   pinHeadline: string;
   gistBody: string;
   detailedSvg: string;
+}
+
+/**
+ * Builds the two gist file contents from a JourneyResult, wiring the SVG into journey.md
+ * via an image reference so the gist body links to the full journey (spec §10.1/§10.2/§11).
+ */
+export function buildGistFiles(
+  username: string,
+  gistId: string,
+  result: JourneyResult
+): { 'journey.md': string; 'journey.svg': string } {
+  const svgImageMarkdown = `\n![full journey](https://gist.githubusercontent.com/${username}/${gistId}/raw/journey.svg)\n`;
+  return {
+    'journey.md': result.gistBody + svgImageMarkdown,
+    'journey.svg': result.detailedSvg,
+  };
 }
 
 export async function buildJourney(
@@ -51,22 +67,10 @@ export async function buildJourney(
   const detailedSvg = renderDetailedSvg(opts.username, arcLine, detailedYears, journeyYears);
 
   const hero = selectHero(detailedYears);
-  const moments = hero ? selectMoreMoments(detailedYears, hero) : [];
-  const totals = detailedYears.reduce(
-    (acc, y) => ({
-      commitDays: acc.commitDays + y.metrics.commitDays,
-      ownPRs: acc.ownPRs + y.metrics.ownPRs,
-      externalPRs: acc.externalPRs + y.metrics.externalPRs,
-      ownMerged: acc.ownMerged + y.ownMergedPRs.length,
-      externalMerged: acc.externalMerged + y.externalMergedPRs.length,
-      starsGained: acc.starsGained + y.metrics.starsGained,
-      reposCreated: acc.reposCreated + y.metrics.reposCreated,
-      longLivedRepoCount: acc.longLivedRepoCount + y.metrics.longLivedRepoCount,
-    }),
-    { commitDays: 0, ownPRs: 0, externalPRs: 0, ownMerged: 0, externalMerged: 0, starsGained: 0, reposCreated: 0, longLivedRepoCount: 0 }
-  );
+  const moments = selectMoreMoments(detailedYears, hero);
+  const totals = windowTotals(detailedYears);
   const cumulativeLines = renderCumulativeSentence({ ...totals, yearCount: detailedYears.length });
-  const comfortLayerMarkdown = hero ? renderComfortLayerMarkdown(hero, moments, cumulativeLines) : '';
+  const comfortLayerMarkdown = renderComfortLayerMarkdown(hero, moments, cumulativeLines);
 
   return {
     pinHeadline: renderPinHeadline(journeyYears),
@@ -96,8 +100,9 @@ async function main() {
   });
 
   if (gistId && token) {
-    await updateGist(octokit as unknown as GistOctokitLike, gistId, 'journey.md', result.gistBody);
-    await updateGist(octokit as unknown as GistOctokitLike, gistId, 'journey.svg', result.detailedSvg);
+    const files = buildGistFiles(username, gistId, result);
+    await updateGist(octokit as unknown as GistOctokitLike, gistId, 'journey.md', files['journey.md']);
+    await updateGist(octokit as unknown as GistOctokitLike, gistId, 'journey.svg', files['journey.svg']);
     console.log(`Updated gist ${gistId}`);
   } else {
     console.log(result.gistBody);

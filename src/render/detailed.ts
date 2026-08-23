@@ -1,9 +1,10 @@
 import { chartGridSlots, buildPolylinePoints, buildBars, type PlotArea } from './chart';
-import { bucketByMonth, bucketCumulativeByMonth } from '../detailed/monthly';
+import { bucketByMonth, bucketCumulativeByMonth, monthLabels } from '../detailed/monthly';
 import { buildReportCard, type ReportCardRow } from '../detailed/reportcard';
 import { buildYearNote } from '../detailed/notes';
 import { selectHero, selectMoreMoments, type HeroMoment, type Moment } from '../detailed/moments';
 import { renderCumulativeSentence } from '../detailed/sentence';
+import { windowTotals } from '../detailed';
 import type { DetailedYearData } from '../detailed/types';
 import type { JourneyYear } from '../types';
 
@@ -49,30 +50,38 @@ function renderPolaroid(): string {
   <rect x="60" y="70" width="40" height="15" rx="1" fill="#d9a86c" opacity="0.65" transform="rotate(6 80 77)"/>`;
 }
 
-export function renderHeroSection(hero: HeroMoment, moments: Moment[], cumulativeLines: string[]): string {
+export function renderHeroSection(hero: HeroMoment | null, moments: Moment[], cumulativeLines: string[]): string {
   const parts: string[] = [];
+  // With no hero, the polaroid/"THE START"/repo-name block is skipped entirely, so the
+  // cumulative sentence moves up to roughly where "THE START" label used to start.
+  const cumulativeStartY = hero ? 252 : 112;
 
-  parts.push(renderPolaroid());
-  parts.push(`
+  if (hero) {
+    parts.push(renderPolaroid());
+    parts.push(`
   <g class="hero-fade d1"><text x="172" y="112" font-size="11" font-weight="600" fill="${INK_LABEL}" letter-spacing="1">THE START</text></g>
   <g class="hero-fade d2"><text x="172" y="150" font-size="30" font-weight="700" fill="${INK}">${escapeXml(hero.name)}</text></g>
-  <g class="hero-fade d3"><text x="172" y="178" font-size="14" fill="${INK_SECONDARY}">first public repo, ${hero.date} — the floor this whole story climbs from.</text></g>`);
+  <g class="hero-fade d3"><text x="172" y="178" font-size="14" fill="${INK_SECONDARY}">first public repo, ${escapeXml(hero.date)} — the floor this whole story climbs from.</text></g>`);
+  }
 
   parts.push(`
   <g class="hero-fade d5">`);
   cumulativeLines.forEach((line, i) => {
-    parts.push(`    <text x="28" y="${252 + i * 26}" font-size="19" fill="${INK}">${escapeXml(line)}</text>`);
+    parts.push(`    <text x="28" y="${cumulativeStartY + i * 26}" font-size="19" fill="${INK}">${escapeXml(line)}</text>`);
   });
   parts.push(`  </g>`);
 
+  const lastCumulativeY = cumulativeStartY + (cumulativeLines.length - 1) * 26;
   if (moments.length > 0) {
+    const moreMomentsLabelY = lastCumulativeY + 34;
+    const momentsStartY = moreMomentsLabelY + 24;
     parts.push(`
-  <g class="hero-fade d6"><text x="28" y="312" font-size="12" font-weight="600" fill="${INK_LABEL}" letter-spacing=".5">MORE MOMENTS</text></g>
+  <g class="hero-fade d6"><text x="28" y="${moreMomentsLabelY}" font-size="12" font-weight="600" fill="${INK_LABEL}" letter-spacing=".5">MORE MOMENTS</text></g>
   <g font-size="15" fill="${INK}">`);
     moments.forEach((m, i) => {
-      const y = 336 + i * 24;
+      const y = momentsStartY + i * 24;
       parts.push(
-        `    <text class="moment-fade m${i}" x="28" y="${y}"><tspan fill="${INK_TERTIARY}" font-size="14">${m.date}</tspan>   ${escapeXml(
+        `    <text class="moment-fade m${i}" x="28" y="${y}"><tspan fill="${INK_TERTIARY}" font-size="14">${escapeXml(m.date)}</tspan>   ${escapeXml(
           m.name
         )} · ${escapeXml(m.why)}</text>`
       );
@@ -83,10 +92,13 @@ export function renderHeroSection(hero: HeroMoment, moments: Moment[], cumulativ
   return parts.join('\n');
 }
 
-export function heroSectionHeight(momentsCount: number): number {
+export function heroSectionHeight(momentsCount: number, hasHero: boolean): number {
   // y of the last MORE MOMENTS line (or the cumulative sentence if there are none) + closing padding
-  if (momentsCount === 0) return 278 + 20;
-  return 336 + (momentsCount - 1) * 24 + 20;
+  const cumulativeStartY = hasHero ? 252 : 112;
+  const lastCumulativeY = cumulativeStartY + 26; // cumulativeLines is always 2 lines
+  if (momentsCount === 0) return lastCumulativeY + 20;
+  const momentsStartY = lastCumulativeY + 34 + 24;
+  return momentsStartY + (momentsCount - 1) * 24 + 20;
 }
 
 const MARGIN = 28;
@@ -105,7 +117,12 @@ interface ChartSpec {
   kind: 'line' | 'bars';
 }
 
-function renderChart(spec: ChartSpec, slot: { x: number; width: number; y: number }): string {
+function renderChart(
+  spec: ChartSpec,
+  slot: { x: number; width: number; y: number },
+  yearTicks: Array<{ year: number; index: number }>,
+  totalMonths: number
+): string {
   const plot: PlotArea = {
     x: slot.x + PLOT_INSET,
     y: slot.y + 22,
@@ -120,28 +137,38 @@ function renderChart(spec: ChartSpec, slot: { x: number; width: number; y: numbe
   } else {
     body = `<polyline fill="none" stroke="${spec.color}" stroke-width="2" points="${buildPolylinePoints(spec.values, plot, spec.max)}"/>`;
   }
+  const tickStepX = totalMonths <= 1 ? 0 : plot.width / (totalMonths - 1);
+  const yearTickLabels = yearTicks
+    .map(({ year, index }) => {
+      const x = plot.x + index * tickStepX;
+      return `<text x="${x.toFixed(1)}" y="${(plotBottom + 11).toFixed(1)}" font-size="8" fill="${INK_TERTIARY}">${year}</text>`;
+    })
+    .join('');
   return `
   <text x="${slot.x}" y="${slot.y}" font-size="11" font-weight="600" fill="${INK_LABEL}">${escapeXml(spec.label)}</text>
   <line x1="${plot.x}" y1="${plotBottom}" x2="${plot.x + plot.width}" y2="${plotBottom}" stroke="#ded3bd"/>
   <text x="${plot.x - 2}" y="${plot.y + 4}" text-anchor="end" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#a39a8b">${Math.round(spec.max)}</text>
   ${body}
+  ${yearTickLabels}
   <text x="${slot.x}" y="${plotBottom + 30}" font-size="10" fill="${INK_SECONDARY}">${escapeXml(spec.caption)}</text>`;
 }
 
-function buildChartSpecs(years: DetailedYearData[]): ChartSpec[] {
+export function buildChartSpecs(years: DetailedYearData[]): ChartSpec[] {
   const contributions = bucketByMonth(years, (y) => y.commitDayDates); // proxy: commit-day dates stand in for "contributions" volume per month
   const commitDays = contributions; // same source today; kept separate per spec's two distinct charts
   const ownOpened = bucketByMonth(years, (y) => y.ownPROpenedEvents.map((e) => e.date));
   const extOpened = bucketByMonth(years, (y) => y.externalPROpenedEvents.map((e) => e.date));
   const ownMerged = bucketByMonth(years, (y) => y.ownMergedPRs.map((e) => e.date));
   const extMerged = bucketByMonth(years, (y) => y.externalMergedPRs.map((e) => e.date));
-  const reposCreated = bucketByMonth(years, (y) => y.repos.map((r) => r.createdAt));
+  const reposCreated = bucketByMonth(years, (y) =>
+    y.repos.filter((r) => new Date(r.createdAt).getUTCFullYear() === y.year).map((r) => r.createdAt)
+  );
   const starsCumulative = bucketCumulativeByMonth(years, (y) => y.starEvents.map((e) => e.starredAt));
 
   const totalOwnPRs = years.reduce((s, y) => s + y.metrics.ownPRs, 0);
   const totalExtPRs = years.reduce((s, y) => s + y.metrics.externalPRs, 0);
-  const totalOwnMerged = years.reduce((s, y) => s + y.ownMergedPRs.length, 0);
-  const totalExtMerged = years.reduce((s, y) => s + y.externalMergedPRs.length, 0);
+  const totalOwnMerged = years.reduce((s, y) => s + y.ownMergedCount, 0);
+  const totalExtMerged = years.reduce((s, y) => s + y.externalMergedCount, 0);
   const totalStars = years.reduce((s, y) => s + y.metrics.starsGained, 0);
   const totalDays = years.reduce((s, y) => s + y.metrics.commitDays, 0);
 
@@ -214,7 +241,12 @@ function renderChartsGrid(years: DetailedYearData[], startY: number): { svg: str
     rowHeight: ROW_HEIGHT,
     startY,
   });
-  const svg = specs.map((spec, i) => renderChart(spec, slots[i])).join('\n');
+  const labels = monthLabels(years);
+  const yearTicks = labels
+    .map((label, index) => ({ label, index }))
+    .filter(({ label }) => label.endsWith('-01'))
+    .map(({ label, index }) => ({ year: Number(label.slice(0, 4)), index }));
+  const svg = specs.map((spec, i) => renderChart(spec, slots[i], yearTicks, labels.length)).join('\n');
   const lastRowY = Math.max(...slots.map((s) => s.y));
   return { svg, endY: lastRowY + ROW_HEIGHT - 10 };
 }
@@ -232,16 +264,30 @@ const FRIENDLY_COLUMN: Record<string, string> = {
   reposCreated: 'repos created',
 };
 
+function comebackFraming(rows: ReportCardRow[], yearsWithHighs: number[]): string {
+  const first = rows[0];
+  const last = rows[rows.length - 1];
+  if (last.days > first.days) {
+    return `${first.year} is the floor, not a failure — ${first.days} → ${last.days} commit days is the story.`;
+  } else if (yearsWithHighs.length === 1) {
+    return `${yearsWithHighs[0]} led every column this window.`;
+  }
+  return 'Every column stayed flat this window.';
+}
+
 function reportCardReading(rows: ReportCardRow[], highs: Set<string>): [string, string] {
   const line1 = '★ is the high mark in that column.';
+  if (rows.length === 0) return [line1, ''];
 
   const highCountByYear = new Map<number, number>();
   const columnsByYear = new Map<number, string[]>();
+  const yearsByColumn = new Map<string, number[]>();
   for (const key of highs) {
     const [yearStr, col] = key.split(':');
     const year = Number(yearStr);
     highCountByYear.set(year, (highCountByYear.get(year) ?? 0) + 1);
     columnsByYear.set(year, [...(columnsByYear.get(year) ?? []), col]);
+    yearsByColumn.set(col, [...(yearsByColumn.get(col) ?? []), year]);
   }
 
   const yearsWithHighs = [...highCountByYear.keys()];
@@ -250,18 +296,18 @@ function reportCardReading(rows: ReportCardRow[], highs: Set<string>): [string, 
     const sorted = [...yearsWithHighs].sort((a, b) => highCountByYear.get(a)! - highCountByYear.get(b)!);
     const otherYear = sorted[0];
     const topYear = sorted[sorted.length - 1];
-    const otherColumn = columnsByYear.get(otherYear)![0];
-    line2 = `${otherYear} had the most ${FRIENDLY_COLUMN[otherColumn] ?? otherColumn}. ${topYear} took the rest.`;
-  } else {
-    const first = rows[0];
-    const last = rows[rows.length - 1];
-    if (last.days > first.days) {
-      line2 = `${first.year} is the floor, not a failure — ${first.days} → ${last.days} commit days is the story.`;
-    } else if (yearsWithHighs.length === 1) {
-      line2 = `${yearsWithHighs[0]} led every column this window.`;
+    // Only name a column where otherYear is the UNIQUE high — buildReportCard marks every
+    // tied high, so a shared column would make "had the most X" a false claim.
+    const uniqueColumn = (columnsByYear.get(otherYear) ?? []).find(
+      (col) => (yearsByColumn.get(col) ?? []).length === 1
+    );
+    if (uniqueColumn) {
+      line2 = `${otherYear} had the most ${FRIENDLY_COLUMN[uniqueColumn] ?? uniqueColumn}. ${topYear} took the rest.`;
     } else {
-      line2 = 'Every column stayed flat this window.';
+      line2 = comebackFraming(rows, yearsWithHighs);
     }
+  } else {
+    line2 = comebackFraming(rows, yearsWithHighs);
   }
 
   return [line1, line2];
@@ -346,24 +392,12 @@ export function renderDetailedSvg(
   journeyYears: JourneyYear[]
 ): string {
   const hero = selectHero(years);
-  const moments = hero ? selectMoreMoments(years, hero) : [];
-  const totals = years.reduce(
-    (acc, y) => ({
-      commitDays: acc.commitDays + y.metrics.commitDays,
-      ownPRs: acc.ownPRs + y.metrics.ownPRs,
-      externalPRs: acc.externalPRs + y.metrics.externalPRs,
-      ownMerged: acc.ownMerged + y.ownMergedPRs.length,
-      externalMerged: acc.externalMerged + y.externalMergedPRs.length,
-      starsGained: acc.starsGained + y.metrics.starsGained,
-      reposCreated: acc.reposCreated + y.metrics.reposCreated,
-      longLivedRepoCount: acc.longLivedRepoCount + y.metrics.longLivedRepoCount,
-    }),
-    { commitDays: 0, ownPRs: 0, externalPRs: 0, ownMerged: 0, externalMerged: 0, starsGained: 0, reposCreated: 0, longLivedRepoCount: 0 }
-  );
+  const moments = selectMoreMoments(years, hero);
+  const totals = windowTotals(years);
   const cumulativeLines = renderCumulativeSentence({ ...totals, yearCount: years.length });
 
-  const heroSvg = hero ? renderHeroSection(hero, moments, cumulativeLines) : '';
-  const heroHeight = hero ? heroSectionHeight(moments.length) : 90;
+  const heroSvg = renderHeroSection(hero, moments, cumulativeLines);
+  const heroHeight = heroSectionHeight(moments.length, hero !== null);
   const analysisLabelY = heroHeight + 26;
   const chartsStartY = analysisLabelY + 16;
 

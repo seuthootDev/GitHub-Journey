@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { buildJourney } from './cli';
+import { buildJourney, buildGistFiles } from './cli';
 
 function makeOctokit() {
   return {
@@ -110,5 +110,22 @@ describe('buildJourney', () => {
     // assert the comfort layer's cumulative sentence lands strictly after the pin instead.
     const comfortIndex = result.gistBody.indexOf('You showed up');
     expect(comfortIndex).toBeGreaterThan(pinIndex);
+  });
+});
+
+describe('buildGistFiles', () => {
+  it('embeds an image link to journey.svg in journey.md, so the SVG is reachable from the gist body (spec §10.1/§10.2/§11)', () => {
+    const result = {
+      pinHeadline: 'headline',
+      gistBody: 'the gist body',
+      detailedSvg: '<svg>the svg</svg>',
+    };
+    const files = buildGistFiles('seuthootDev', 'abc123', result);
+    expect(files['journey.md']).toContain('the gist body');
+    expect(files['journey.md']).toContain('journey.svg');
+    expect(files['journey.md']).toContain(
+      'https://gist.githubusercontent.com/seuthootDev/abc123/raw/journey.svg'
+    );
+    expect(files['journey.svg']).toBe('<svg>the svg</svg>');
   });
 });

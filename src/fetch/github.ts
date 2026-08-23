@@ -160,6 +160,8 @@ export async function fetchRawYear(octokit: OctokitLike, username: string, year:
     starsGainedThisYear,
     ownMergedPRs: mergedEvents(ownMerged.items),
     externalMergedPRs: mergedEvents(externalMerged.items),
+    ownMergedCount: ownMerged.total_count,
+    externalMergedCount: externalMerged.total_count,
     ownPROpenedEvents: (ownPRs.items ?? []).map((item) => ({ repo: repoNameFromUrl(item.repository_url), date: item.created_at })),
     externalPROpenedEvents: (externalPRs.items ?? []).map((item) => ({ repo: repoNameFromUrl(item.repository_url), date: item.created_at })),
     starEvents,

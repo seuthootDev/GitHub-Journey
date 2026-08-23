@@ -19,4 +19,10 @@ describe('renderComfortLayerMarkdown', () => {
     const md = renderComfortLayerMarkdown({ date: '2024-09-01', name: 'x' }, [], ['a', 'b']);
     expect(md).not.toContain('More moments');
   });
+
+  it('still renders the cumulative sentence when hero is null (0-repo account), just without the hero line', () => {
+    const md = renderComfortLayerMarkdown(null, [], ['You showed up 12 days in 1 years.', '12 public repos. 0 lived past a year.']);
+    expect(md).toContain('You showed up 12 days in 1 years.');
+    expect(md).not.toContain('first public repo, the start.');
+  });
 });

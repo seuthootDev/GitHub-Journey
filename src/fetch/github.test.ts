@@ -253,6 +253,55 @@ describe('fetchRawYear', () => {
     ]);
   });
 
+  it('records ownMergedCount/externalMergedCount from search total_count, even when items is a smaller (per_page-capped) sample', async () => {
+    const octokit = makeOctokit({
+      rest: {
+        ...makeOctokit().rest,
+        search: {
+          issuesAndPullRequests: vi.fn((params: { q: string }) => {
+            if (params.q.includes('is:merged') && params.q.includes('-user:seuthootDev')) {
+              return Promise.resolve({
+                data: {
+                  total_count: 40,
+                  items: [
+                    {
+                      repository_url: 'https://api.github.com/repos/someone-else/repo',
+                      created_at: '2026-01-05T00:00:00Z',
+                      pull_request: { merged_at: '2026-01-10T00:00:00Z' },
+                    },
+                  ],
+                },
+              });
+            }
+            if (params.q.includes('is:merged') && params.q.includes('user:seuthootDev')) {
+              return Promise.resolve({
+                data: {
+                  total_count: 150,
+                  items: [
+                    {
+                      repository_url: 'https://api.github.com/repos/seuthootDev/repo',
+                      created_at: '2026-01-01T00:00:00Z',
+                      pull_request: { merged_at: '2026-01-02T00:00:00Z' },
+                    },
+                  ],
+                },
+              });
+            }
+            return Promise.resolve({ data: { total_count: 0, items: [] } });
+          }),
+        },
+      },
+    });
+
+    const result = await fetchRawYear(octokit as any, 'seuthootDev', 2026);
+
+    expect(result.ownMergedCount).toBe(150);
+    expect(result.externalMergedCount).toBe(40);
+    // The event arrays stay whatever sample the API returned — they are not the total.
+    expect(result.ownMergedPRs).toHaveLength(1);
+    expect(result.externalMergedPRs).toHaveLength(1);
+  });
+
   it('captures ownPROpenedEvents with repo and creation date', async () => {
     const octokit = makeOctokit({
       rest: {

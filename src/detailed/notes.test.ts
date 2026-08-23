@@ -25,6 +25,8 @@ function yearFixture(overrides: Partial<DetailedYearData['metrics']> = {}, extra
     repos: [],
     ownMergedPRs: [],
     externalMergedPRs: [],
+    ownMergedCount: 0,
+    externalMergedCount: 0,
     ownPROpenedEvents: [],
     externalPROpenedEvents: [],
     starEvents: [],
@@ -48,7 +50,10 @@ describe('buildYearNote', () => {
 
   it('mentions external PRs for a contributor year', () => {
     const note = buildYearNote(
-      yearFixture({ ownPRs: 63, externalPRs: 37, commitDays: 130 }, { externalMergedPRs: [{ repo: 'a', date: '2026-01-01' }] }),
+      yearFixture(
+        { ownPRs: 63, externalPRs: 37, commitDays: 130 },
+        { externalMergedPRs: [{ repo: 'a', date: '2026-01-01' }], externalMergedCount: 1 }
+      ),
       'Open Source Contributor'
     );
     expect(note.lines.join(' ')).toMatch(/pull request/i);
@@ -63,6 +68,7 @@ describe('buildYearNote', () => {
             { repo: 'react', date: '2024-01-15' },
             { repo: 'next', date: '2024-03-20' },
           ],
+          externalMergedCount: 2,
         }
       ),
       'Open Source Contributor'

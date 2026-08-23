@@ -9,6 +9,8 @@ function yearFixture(year: number, overrides: Partial<DetailedYearData> = {}): D
     repos: [],
     ownMergedPRs: [],
     externalMergedPRs: [],
+    ownMergedCount: 0,
+    externalMergedCount: 0,
     ownPROpenedEvents: [],
     externalPROpenedEvents: [],
     starEvents: [],
