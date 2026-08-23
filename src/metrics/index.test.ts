@@ -13,6 +13,11 @@ function raw(overrides: Partial<RawYearData>): RawYearData {
     externalRepoCount: 0,
     reviewCount: 0,
     starsGainedThisYear: 0,
+    ownMergedPRs: [],
+    externalMergedPRs: [],
+    ownPROpenedEvents: [],
+    externalPROpenedEvents: [],
+    starEvents: [],
     ...overrides,
   };
 }
