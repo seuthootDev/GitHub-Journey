@@ -115,6 +115,10 @@ export async function fetchRawYear(octokit: OctokitLike, username: string, year:
     q: `reviewed-by:${username} type:pr created:${dateRange}`,
     per_page: 100,
   });
+  const { data: issues } = await octokit.rest.search.issuesAndPullRequests({
+    q: `is:issue author:${username} created:${dateRange}`,
+    per_page: 100,
+  });
   const { data: ownMerged } = await octokit.rest.search.issuesAndPullRequests({
     q: `author:${username} type:pr is:merged merged:${dateRange} user:${username}`,
     per_page: 100,
@@ -165,5 +169,7 @@ export async function fetchRawYear(octokit: OctokitLike, username: string, year:
     ownPROpenedEvents: (ownPRs.items ?? []).map((item) => ({ repo: repoNameFromUrl(item.repository_url), date: item.created_at })),
     externalPROpenedEvents: (externalPRs.items ?? []).map((item) => ({ repo: repoNameFromUrl(item.repository_url), date: item.created_at })),
     starEvents,
+    reviewEvents: (reviews.items ?? []).map((item) => ({ repo: repoNameFromUrl(item.repository_url), date: item.created_at })),
+    issueEvents: (issues.items ?? []).map((item) => ({ repo: repoNameFromUrl(item.repository_url), date: item.created_at })),
   };
 }

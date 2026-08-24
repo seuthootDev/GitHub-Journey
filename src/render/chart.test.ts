@@ -1,5 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { buildPolylinePoints, buildBars, chartGridSlots } from './chart';
+import { buildPolylinePoints, buildBars, chartGridSlots, pointAt } from './chart';
+
+describe('pointAt', () => {
+  it('returns the same coordinate buildPolylinePoints would place at that index', () => {
+    const plot = { x: 0, y: 0, width: 100, height: 50 };
+    expect(pointAt([0, 5, 10], 1, plot, 10)).toEqual({ x: 50, y: 25 });
+    expect(pointAt([0, 5, 10], 2, plot, 10)).toEqual({ x: 100, y: 0 });
+  });
+
+  it('does not divide by zero for a single-value series', () => {
+    const plot = { x: 0, y: 0, width: 100, height: 50 };
+    expect(pointAt([7], 0, plot, 10)).toEqual({ x: 0, y: 15 });
+  });
+});
 
 describe('buildPolylinePoints', () => {
   it('maps values to evenly spaced x, scaled y within the plot area', () => {

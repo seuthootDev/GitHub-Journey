@@ -20,6 +20,8 @@ export function toDetailedYearData(raw: RawYearData, metrics: YearlyMetrics): De
     ownPROpenedEvents: raw.ownPROpenedEvents,
     externalPROpenedEvents: raw.externalPROpenedEvents,
     starEvents: raw.starEvents,
+    reviewEvents: raw.reviewEvents,
+    issueEvents: raw.issueEvents,
     commitDayDates,
     firstContributionDay: commitDayDates[0] ?? null,
   };

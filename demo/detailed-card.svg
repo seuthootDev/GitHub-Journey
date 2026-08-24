@@ -1,26 +1,38 @@
-<!-- Demo mock only. Not wired into src/. Caveat font falls back to system cursive when the
-     Google Fonts stylesheet isn't loaded (e.g. viewed as a raw file instead of in a browser
-     that already has fonts.googleapis.com available) -- see spec section on font loading. -->
-<svg width="840" height="1430" viewBox="0 0 840 1430" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<svg width="840" height="1500" viewBox="0 0 840 1500" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
   <defs>
     <style>
-      .hero-fade, .moment-fade, .polaroid { opacity: 0; animation: memFadeIn 0.9s ease-out forwards; }
-      .polaroid { animation-delay: 0s; animation-duration: 1.1s; }
-      .hero-fade.d1 { animation-delay: .35s; }
-      .hero-fade.d2 { animation-delay: .6s; }
-      .hero-fade.d3 { animation-delay: .95s; }
-      .hero-fade.d5 { animation-delay: 1.3s; }
-      .hero-fade.d6 { animation-delay: 1.55s; }
-      .moment-fade.m1 { animation-delay: 1.7s; }
-      .moment-fade.m2 { animation-delay: 1.85s; }
-      .moment-fade.m3 { animation-delay: 2.0s; }
-      .moment-fade.m4 { animation-delay: 2.15s; }
-      @keyframes memFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-      @media (prefers-reduced-motion: reduce) {
-        .hero-fade, .moment-fade, .polaroid { animation: none; opacity: 1; transform: none; }
-      }
-    </style>
-    <clipPath id="cardClip"><rect x="0.5" y="0.5" width="839" height="1429" rx="12"/></clipPath>
+  .hero-fade, .moment-fade, .polaroid, .divider-fade, .chart-fade, .reportcard-fade, .notes-fade {
+    opacity: 0; animation: memFadeIn 0.9s ease-out forwards;
+  }
+  .polaroid { animation-delay: 0s; animation-duration: 1.1s; }
+  .hero-fade.d1 { animation-delay: .35s; }
+  .hero-fade.d2 { animation-delay: .6s; }
+  .hero-fade.d3 { animation-delay: .95s; }
+  .hero-fade.d5 { animation-delay: 1.3s; }
+  .hero-fade.d6 { animation-delay: 1.55s; }
+  .moment-fade.m0 { animation-delay: 1.7s; }
+  .moment-fade.m1 { animation-delay: 1.85s; }
+  .moment-fade.m2 { animation-delay: 2.0s; }
+  .moment-fade.m3 { animation-delay: 2.15s; }
+  .moment-fade.m4 { animation-delay: 2.3s; }
+  .moment-fade.m5 { animation-delay: 2.45s; }
+  .moment-fade.m6 { animation-delay: 2.6s; }
+  .moment-fade.m7 { animation-delay: 2.75s; }
+  .divider-fade { animation-delay: 2.9s; }
+  .chart-fade.row0 { animation-delay: 3.05s; }
+  .chart-fade.row1 { animation-delay: 3.2s; }
+  .chart-fade.row2 { animation-delay: 3.35s; }
+  .chart-fade.row3 { animation-delay: 3.5s; }
+  .reportcard-fade { animation-delay: 3.7s; }
+  .notes-fade { animation-delay: 3.9s; }
+  @keyframes memFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-fade, .moment-fade, .polaroid, .divider-fade, .chart-fade, .reportcard-fade, .notes-fade {
+      animation: none; opacity: 1; transform: none;
+    }
+  }
+</style>
+    <clipPath id="cardClip"><rect x="0.5" y="0.5" width="839" height="1499" rx="12"/></clipPath>
     <linearGradient id="photoSky" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#fbe9c9"/>
       <stop offset="1" stop-color="#f3d9a8"/>
@@ -33,18 +45,14 @@
       <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#3a2a16" flood-opacity="0.22"/>
     </filter>
   </defs>
-
   <g clip-path="url(#cardClip)">
-    <rect x="0" y="0" width="840" height="1430" fill="#faf3e6"/>
-    <rect x="0" y="0" width="840" height="1430" filter="url(#paperGrain)"/>
+    <rect x="0" y="0" width="840" height="1500" fill="#faf3e6"/>
+    <rect x="0" y="0" width="840" height="1500" filter="url(#paperGrain)"/>
   </g>
-  <rect x="0.5" y="0.5" width="839" height="1429" rx="12" fill="none" stroke="#ded3bd"/>
-
-  <text x="28" y="34" font-size="18" font-weight="700" fill="#1c1917">seuthootDev &#x00B7; full journey</text>
-  <text x="28" y="54" font-family="ui-monospace, Consolas, monospace" font-size="11" fill="#44403c">Quiet Year &#x2192; Builder &#x2192; Open Source Contributor</text>
-  <text x="812" y="34" text-anchor="end" font-size="11" fill="#8a8175">real dates &#x00B7; mock layout &#x00B7; illustrated polaroid variant</text>
-
-  <!-- polaroid: hand-drawn sprout standing in for a real photo -->
+  <rect x="0.5" y="0.5" width="839" height="1499" rx="12" fill="none" stroke="#ded3bd"/>
+  <text x="28" y="34" font-size="18" font-weight="700" fill="#1c1917">seuthootDev · full journey</text>
+  <text x="28" y="54" font-family="ui-monospace, Consolas, monospace" font-size="11" fill="#44403c">Quiet Year → Builder → Open Source Contributor</text>
+  
   <g class="polaroid" filter="url(#polaroidShadow)" transform="rotate(-4 87 150)">
     <rect x="28" y="80" width="118" height="140" rx="3" fill="#fffdf8" stroke="#e8ddc8"/>
     <rect x="36" y="88" width="102" height="98" fill="url(#photoSky)"/>
@@ -59,256 +67,101 @@
 
   <g class="hero-fade d1"><text x="172" y="112" font-size="11" font-weight="600" fill="#78716c" letter-spacing="1">THE START</text></g>
   <g class="hero-fade d2"><text x="172" y="150" font-size="30" font-weight="700" fill="#1c1917">seuthootDev</text></g>
-  <g class="hero-fade d3"><text x="172" y="178" font-size="14" fill="#57534e">first public repo, 2024-09 &#x2014; the floor this whole story climbs from.</text></g>
+  <g class="hero-fade d3"><text x="172" y="178" font-size="14" fill="#57534e">first public repo, 2024-09-01 — the floor this whole story climbs from.</text></g>
 
   <g class="hero-fade d5">
     <text x="28" y="252" font-size="19" fill="#1c1917">You showed up 241 days in 3 years.</text>
-    <text x="28" y="278" font-size="19" fill="#1c1917">124 pull requests opened, 106 merged &#x2014; 23 in someone else&#x2019;s repo.</text>
+    <text x="28" y="278" font-size="19" fill="#1c1917">124 pull requests opened, 106 merged — 23 in someone else’s repo.</text>
   </g>
 
   <g class="hero-fade d6"><text x="28" y="312" font-size="12" font-weight="600" fill="#78716c" letter-spacing=".5">MORE MOMENTS</text></g>
   <g font-size="15" fill="#1c1917">
-    <text class="moment-fade m1" x="28" y="336"><tspan fill="#8a8175" font-size="14">2025-07</tspan>   hanghae99-backend-week1 &#x00B7; first own PR</text>
-    <text class="moment-fade m2" x="28" y="360"><tspan fill="#8a8175" font-size="14">2026-01</tspan>   Distributed_MES &#x00B7; first external PR, and it merged</text>
-    <text class="moment-fade m3" x="28" y="384"><tspan fill="#8a8175" font-size="14">2026-02</tspan>   qml-vtk-python-pyside6 &#x00B7; first star</text>
-    <text class="moment-fade m4" x="28" y="408"><tspan fill="#8a8175" font-size="14">2026-08</tspan>   insight-terminal-ascii &#x00B7; four more stars land</text>
+    <text class="moment-fade m0" x="28" y="336"><tspan fill="#8a8175" font-size="14">2026-01-01</tspan>   someone-else/Distributed_MES · first external PR, merged</text>
+    <text class="moment-fade m1" x="28" y="360"><tspan fill="#8a8175" font-size="14">2026-02-27</tspan>   qml-vtk-python-pyside6 · first star</text>
+    <text class="moment-fade m2" x="28" y="384"><tspan fill="#8a8175" font-size="14">2025-07-01</tspan>   seuthootDev/hanghae99-backend-week1 · first own PR merged</text>
+    <text class="moment-fade m3" x="28" y="408"><tspan fill="#8a8175" font-size="14">2026-07-15</tspan>   insight-terminal-ascii · 4 more stars land</text>
+    <text class="moment-fade m4" x="28" y="432"><tspan fill="#8a8175" font-size="14">2026-08-01</tspan>   notes-app · longest-lived repo (18 months)</text>
+    <text class="moment-fade m5" x="28" y="456"><tspan fill="#8a8175" font-size="14">2026-08-01</tspan>   2026-08 · busiest month (80 commit days)</text>
   </g>
-
-  <line x1="28" y1="428" x2="812" y2="428" stroke="#ded3bd"/>
-  <text x="28" y="454" font-size="11" font-weight="600" fill="#78716c" letter-spacing="1">ANALYSIS</text>
-  <text x="86" y="454" font-size="11" fill="#8a8175">&#x2014; the numbers behind the story above</text>
-
-  <!-- row 1 -->
-  <text x="28" y="470" font-size="11" font-weight="600" fill="#78716c">CONTRIBUTIONS</text>
-  <line x1="37.6" y1="552" x2="404.0" y2="552" stroke="#ded3bd"/>
-  <line x1="179.4" y1="482" x2="179.4" y2="552" stroke="#ded3bd" stroke-dasharray="3 4"/>
-  <line x1="321.3" y1="482" x2="321.3" y2="552" stroke="#ded3bd" stroke-dasharray="3 4"/>
-  <text x="35.7" y="486" text-anchor="end" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#a39a8b">214</text>
-  <polyline fill="none" stroke="#2f8a4e" stroke-width="2" points="37.6,552.0 108.5,550.7 250.4,490.2 321.3,495.4 368.6,541.2 404.0,482.0"/>
-  <g font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#2f8a4e">
-    <text x="250.4" y="486" text-anchor="middle">189</text>
-    <text x="321.3" y="491" text-anchor="middle">173</text>
-    <text x="404.0" y="478" text-anchor="end">214</text>
+  <g class="divider-fade">
+  <line x1="28" y1="486" x2="812" y2="486" stroke="#ded3bd"/>
+  <text x="28" y="502" font-size="11" font-weight="600" fill="#78716c" letter-spacing="1">ANALYSIS</text>
+  <text x="86" y="502" font-size="11" fill="#8a8175">— the numbers behind the story above</text>
   </g>
-  <text x="37.6" y="566" font-size="9" fill="#8a8175">2024</text>
-  <text x="179.4" y="566" font-size="9" fill="#8a8175">2025</text>
-  <text x="321.3" y="566" font-size="9" fill="#8a8175">2026</text>
-  <text x="28" y="582" font-size="10" fill="#57534e">Peaks Jul &#39;25 and Aug &#39;26, both above 170.</text>
-
-  <text x="436" y="470" font-size="11" font-weight="600" fill="#78716c">COMMIT DAYS</text>
-  <line x1="445.6" y1="552" x2="812.0" y2="552" stroke="#ded3bd"/>
-  <line x1="587.4" y1="482" x2="587.4" y2="552" stroke="#ded3bd" stroke-dasharray="3 4"/>
-  <line x1="729.3" y1="482" x2="729.3" y2="552" stroke="#ded3bd" stroke-dasharray="3 4"/>
-  <text x="443.7" y="486" text-anchor="end" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#a39a8b">24</text>
-  <polyline fill="none" stroke="#2f6fce" stroke-width="2" points="445.6,552.0 516.5,546.2 658.4,487.9 729.3,484.9 776.6,514.1 812.0,508.3"/>
-  <g font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#2f6fce">
-    <text x="658.4" y="483" text-anchor="middle">24</text>
-    <text x="729.3" y="480" text-anchor="middle">23</text>
-    <text x="812.0" y="504" text-anchor="end">15</text>
+  <g class="chart-fade row0">
+  <text x="28" y="518" font-size="11" font-weight="600" fill="#78716c">CONTRIBUTIONS</text>
+  <line x1="38" y1="610" x2="404" y2="610" stroke="#ded3bd"/>
+  <text x="36" y="544" text-anchor="end" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#a39a8b">80</text>
+  <polyline fill="none" stroke="#2f8a4e" stroke-width="2" points="38.0,610.0 48.5,610.0 58.9,610.0 69.4,610.0 79.8,610.0 90.3,610.0 100.7,601.3 111.2,610.0 121.7,610.0 132.1,610.0 142.6,610.0 153.0,610.0 163.5,610.0 173.9,610.0 184.4,610.0 194.9,610.0 205.3,610.0 215.8,610.0 226.2,557.5 236.7,610.0 247.1,610.0 257.6,610.0 268.1,610.0 278.5,610.0 289.0,610.0 299.4,610.0 309.9,610.0 320.3,610.0 330.8,610.0 341.3,610.0 351.7,610.0 362.2,540.0 372.6,610.0 383.1,610.0 393.5,610.0 404.0,610.0"/><text x="100.7" y="595.3" text-anchor="middle" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#2f8a4e">10</text><text x="226.2" y="551.5" text-anchor="middle" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#2f8a4e">60</text><text x="362.2" y="534.0" text-anchor="middle" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#2f8a4e">80</text>
+  <text x="38.0" y="621.0" font-size="8" fill="#8a8175">2024</text><text x="163.5" y="621.0" font-size="8" fill="#8a8175">2025</text><text x="289.0" y="621.0" font-size="8" fill="#8a8175">2026</text>
+  <text x="28" y="640" font-size="10" fill="#57534e">241 commit days across the window.</text></g>
+<g class="chart-fade row0">
+  <text x="436" y="518" font-size="11" font-weight="600" fill="#78716c">COMMIT DAYS</text>
+  <line x1="446" y1="610" x2="812" y2="610" stroke="#ded3bd"/>
+  <text x="444" y="544" text-anchor="end" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#a39a8b">80</text>
+  <polyline fill="none" stroke="#2f6fce" stroke-width="2" points="446.0,610.0 456.5,610.0 466.9,610.0 477.4,610.0 487.8,610.0 498.3,610.0 508.7,601.3 519.2,610.0 529.7,610.0 540.1,610.0 550.6,610.0 561.0,610.0 571.5,610.0 581.9,610.0 592.4,610.0 602.9,610.0 613.3,610.0 623.8,610.0 634.2,557.5 644.7,610.0 655.1,610.0 665.6,610.0 676.1,610.0 686.5,610.0 697.0,610.0 707.4,610.0 717.9,610.0 728.3,610.0 738.8,610.0 749.3,610.0 759.7,610.0 770.2,540.0 780.6,610.0 791.1,610.0 801.5,610.0 812.0,610.0"/><text x="508.7" y="595.3" text-anchor="middle" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#2f6fce">10</text><text x="634.2" y="551.5" text-anchor="middle" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#2f6fce">60</text><text x="770.2" y="534.0" text-anchor="middle" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#2f6fce">80</text>
+  <text x="446.0" y="621.0" font-size="8" fill="#8a8175">2024</text><text x="571.5" y="621.0" font-size="8" fill="#8a8175">2025</text><text x="697.0" y="621.0" font-size="8" fill="#8a8175">2026</text>
+  <text x="436" y="640" font-size="10" fill="#57534e">10 → 101 → 130 days/year.</text></g>
+<g class="chart-fade row1">
+  <text x="28" y="650" font-size="11" font-weight="600" fill="#78716c">PULL REQUESTS</text>
+  <line x1="38" y1="742" x2="404" y2="742" stroke="#ded3bd"/>
+  <text x="36" y="676" text-anchor="end" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#a39a8b">8</text>
+  <polyline fill="none" stroke="#2f6fce" stroke-width="2" points="38.0,742.0 48.5,742.0 58.9,742.0 69.4,742.0 79.8,742.0 90.3,742.0 100.7,742.0 111.2,742.0 121.7,742.0 132.1,742.0 142.6,742.0 153.0,742.0 163.5,742.0 173.9,742.0 184.4,742.0 194.9,742.0 205.3,742.0 215.8,742.0 226.2,672.0 236.7,672.0 247.1,672.0 257.6,742.0 268.1,742.0 278.5,742.0 289.0,742.0 299.4,742.0 309.9,742.0 320.3,742.0 330.8,742.0 341.3,742.0 351.7,742.0 362.2,742.0 372.6,742.0 383.1,742.0 393.5,742.0 404.0,742.0"/><text x="226.2" y="666.0" text-anchor="middle" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#2f6fce">8</text>
+  <text x="38.0" y="753.0" font-size="8" fill="#8a8175">2024</text><text x="163.5" y="753.0" font-size="8" fill="#8a8175">2025</text><text x="289.0" y="753.0" font-size="8" fill="#8a8175">2026</text>
+  <text x="28" y="772" font-size="10" fill="#57534e">87 own, 37 external opened.</text></g>
+<g class="chart-fade row1">
+  <text x="436" y="650" font-size="11" font-weight="600" fill="#78716c">MERGED PRs</text>
+  <line x1="446" y1="742" x2="812" y2="742" stroke="#ded3bd"/>
+  <text x="444" y="676" text-anchor="end" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#a39a8b">23</text>
+  <polyline fill="none" stroke="#c9781f" stroke-width="2" points="446.0,742.0 456.5,742.0 466.9,742.0 477.4,742.0 487.8,742.0 498.3,742.0 508.7,742.0 519.2,742.0 529.7,742.0 540.1,742.0 550.6,742.0 561.0,742.0 571.5,742.0 581.9,742.0 592.4,742.0 602.9,742.0 613.3,742.0 623.8,742.0 634.2,717.7 644.7,720.7 655.1,720.7 665.6,742.0 676.1,742.0 686.5,742.0 697.0,672.0 707.4,742.0 717.9,742.0 728.3,702.4 738.8,705.5 749.3,705.5 759.7,705.5 770.2,705.5 780.6,742.0 791.1,742.0 801.5,742.0 812.0,742.0"/><text x="697.0" y="666.0" text-anchor="middle" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#c9781f">23</text><text x="728.3" y="696.4" text-anchor="middle" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#c9781f">13</text><text x="738.8" y="699.5" text-anchor="middle" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#c9781f">12</text>
+  <text x="446.0" y="753.0" font-size="8" fill="#8a8175">2024</text><text x="571.5" y="753.0" font-size="8" fill="#8a8175">2025</text><text x="697.0" y="753.0" font-size="8" fill="#8a8175">2026</text>
+  <text x="436" y="772" font-size="10" fill="#57534e">83 own, 23 external merged.</text></g>
+<g class="chart-fade row2">
+  <text x="28" y="782" font-size="11" font-weight="600" fill="#78716c">REPOS CREATED</text>
+  <line x1="38" y1="874" x2="404" y2="874" stroke="#ded3bd"/>
+  <text x="36" y="808" text-anchor="end" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#a39a8b">1</text>
+  <rect x="35.6" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="46.1" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="56.5" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="67.0" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="77.4" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="87.9" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="98.3" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="108.8" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="119.3" y="804.0" width="4.8" height="70.0" rx="1" fill="#7c4fd1"/><rect x="129.7" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="140.2" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="150.6" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="161.1" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="171.5" y="804.0" width="4.8" height="70.0" rx="1" fill="#7c4fd1"/><rect x="182.0" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="192.5" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="202.9" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="213.4" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="223.8" y="804.0" width="4.8" height="70.0" rx="1" fill="#7c4fd1"/><rect x="234.3" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="244.7" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="255.2" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="265.7" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="276.1" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="286.6" y="804.0" width="4.8" height="70.0" rx="1" fill="#7c4fd1"/><rect x="297.0" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="307.5" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="317.9" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="328.4" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="338.9" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="349.3" y="804.0" width="4.8" height="70.0" rx="1" fill="#7c4fd1"/><rect x="359.8" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="370.2" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="380.7" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="391.1" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><rect x="401.6" y="874.0" width="4.8" height="0.0" rx="1" fill="#7c4fd1"/><text x="121.7" y="798.0" text-anchor="middle" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#7c4fd1">1</text><text x="173.9" y="798.0" text-anchor="middle" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#7c4fd1">1</text>
+  <text x="38.0" y="885.0" font-size="8" fill="#8a8175">2024</text><text x="163.5" y="885.0" font-size="8" fill="#8a8175">2025</text><text x="289.0" y="885.0" font-size="8" fill="#8a8175">2026</text>
+  <text x="28" y="904" font-size="10" fill="#57534e">5 repos across the window.</text></g>
+<g class="chart-fade row2">
+  <text x="436" y="782" font-size="11" font-weight="600" fill="#78716c">STARS (cumulative)</text>
+  <line x1="446" y1="874" x2="812" y2="874" stroke="#ded3bd"/>
+  <text x="444" y="808" text-anchor="end" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#a39a8b">5</text>
+  <polyline fill="none" stroke="#c9971f" stroke-width="2" points="446.0,874.0 456.5,874.0 466.9,874.0 477.4,874.0 487.8,874.0 498.3,874.0 508.7,874.0 519.2,874.0 529.7,874.0 540.1,874.0 550.6,874.0 561.0,874.0 571.5,874.0 581.9,874.0 592.4,874.0 602.9,874.0 613.3,874.0 623.8,874.0 634.2,874.0 644.7,874.0 655.1,874.0 665.6,874.0 676.1,874.0 686.5,874.0 697.0,874.0 707.4,860.0 717.9,860.0 728.3,860.0 738.8,860.0 749.3,860.0 759.7,832.0 770.2,804.0 780.6,804.0 791.1,804.0 801.5,804.0 812.0,804.0"/><text x="707.4" y="854.0" text-anchor="middle" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#c9971f">1</text><text x="759.7" y="826.0" text-anchor="middle" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#c9971f">3</text><text x="770.2" y="798.0" text-anchor="middle" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#c9971f">5</text>
+  <text x="446.0" y="885.0" font-size="8" fill="#8a8175">2024</text><text x="571.5" y="885.0" font-size="8" fill="#8a8175">2025</text><text x="697.0" y="885.0" font-size="8" fill="#8a8175">2026</text>
+  <text x="436" y="904" font-size="10" fill="#57534e">5 stars, cumulative.</text></g>
+<g class="chart-fade row3">
+  <text x="28" y="914" font-size="11" font-weight="600" fill="#78716c">REVIEWS + ISSUES</text>
+  <line x1="38" y1="1006" x2="812" y2="1006" stroke="#ded3bd"/>
+  
+  <circle cx="436.1" cy="960.5" r="4" fill="#3a7fd6"/><circle cx="568.7" cy="960.5" r="4" fill="#3a7fd6"/><circle cx="568.7" cy="960.5" r="4" fill="#3a7fd6"/><rect x="387.8" y="984.5" width="8" height="8" fill="#d1453d"/><rect x="454.2" y="984.5" width="8" height="8" fill="#d1453d"/>
+  <text x="38.0" y="1017.0" font-size="8" fill="#8a8175">2024</text><text x="303.4" y="1017.0" font-size="8" fill="#8a8175">2025</text><text x="568.7" y="1017.0" font-size="8" fill="#8a8175">2026</text>
+  <text x="28" y="1036" font-size="10" fill="#57534e">3 reviews, 2 issues across the window.</text></g>
+  
+  <g class="reportcard-fade">
+  <text x="28" y="1056" font-size="11" font-weight="600" fill="#78716c">REPORT CARD</text>
+  <rect x="28" y="1068" width="784" height="112" rx="6" fill="#fffdf8" stroke="#ded3bd"/>
+  <text x="40" y="1087" text-anchor="start" font-size="11" font-weight="600" fill="#78716c">Year</text><text x="88" y="1087" text-anchor="start" font-size="11" font-weight="600" fill="#78716c">Language</text><text x="200" y="1087" text-anchor="end" font-size="11" font-weight="600" fill="#78716c">Repos</text><text x="252" y="1087" text-anchor="end" font-size="11" font-weight="600" fill="#78716c">Long</text><text x="304" y="1087" text-anchor="end" font-size="11" font-weight="600" fill="#78716c">Days</text><text x="372" y="1087" text-anchor="end" font-size="11" font-weight="600" fill="#78716c">Own PRs</text><text x="440" y="1087" text-anchor="end" font-size="11" font-weight="600" fill="#78716c">Ext PRs</text><text x="516" y="1087" text-anchor="end" font-size="11" font-weight="600" fill="#78716c">Own mer</text><text x="592" y="1087" text-anchor="end" font-size="11" font-weight="600" fill="#78716c">Ext mer</text><text x="640" y="1087" text-anchor="end" font-size="11" font-weight="600" fill="#78716c">Rev</text><text x="696" y="1087" text-anchor="end" font-size="11" font-weight="600" fill="#78716c">Stars</text><text x="796" y="1087" text-anchor="end" font-size="11" font-weight="600" fill="#78716c">New repos</text>
+  <text x="40" y="1115" text-anchor="start" font-size="12" fill="#1c1917">2024</text><text x="88" y="1115" text-anchor="start" font-size="12" fill="#1c1917">—</text><text x="200" y="1115" text-anchor="end" font-size="12" fill="#1c1917">1</text><text x="252" y="1115" text-anchor="end" font-size="12" fill="#1c1917">0</text><text x="304" y="1115" text-anchor="end" font-size="12" fill="#1c1917">10</text><text x="372" y="1115" text-anchor="end" font-size="12" fill="#1c1917">0</text><text x="440" y="1115" text-anchor="end" font-size="12" fill="#1c1917">0</text><text x="516" y="1115" text-anchor="end" font-size="12" fill="#1c1917">0</text><text x="592" y="1115" text-anchor="end" font-size="12" fill="#1c1917">0</text><text x="640" y="1115" text-anchor="end" font-size="12" fill="#1c1917">0</text><text x="696" y="1115" text-anchor="end" font-size="12" fill="#1c1917">0</text><text x="796" y="1115" text-anchor="end" font-size="12" fill="#1c1917">1</text><text x="40" y="1143" text-anchor="start" font-size="12" fill="#1c1917">2025</text><text x="88" y="1143" text-anchor="start" font-size="12" fill="#1c1917">TypeScript</text><text x="200" y="1143" text-anchor="end" font-size="12" fill="#1c1917">13</text><text x="252" y="1143" text-anchor="end" font-size="12" fill="#1c1917">2<tspan fill="#b8860b">&#x2605;</tspan></text><text x="304" y="1143" text-anchor="end" font-size="12" fill="#1c1917">101</text><text x="372" y="1143" text-anchor="end" font-size="12" fill="#1c1917">24</text><text x="440" y="1143" text-anchor="end" font-size="12" fill="#1c1917">0</text><text x="516" y="1143" text-anchor="end" font-size="12" fill="#1c1917">22</text><text x="592" y="1143" text-anchor="end" font-size="12" fill="#1c1917">0</text><text x="640" y="1143" text-anchor="end" font-size="12" fill="#1c1917">1</text><text x="696" y="1143" text-anchor="end" font-size="12" fill="#1c1917">0</text><text x="796" y="1143" text-anchor="end" font-size="12" fill="#1c1917">2<tspan fill="#b8860b">&#x2605;</tspan></text><text x="40" y="1171" text-anchor="start" font-size="12" fill="#1c1917">2026</text><text x="88" y="1171" text-anchor="start" font-size="12" fill="#1c1917">GDScript</text><text x="200" y="1171" text-anchor="end" font-size="12" fill="#1c1917">17<tspan fill="#b8860b">&#x2605;</tspan></text><text x="252" y="1171" text-anchor="end" font-size="12" fill="#1c1917">2<tspan fill="#b8860b">&#x2605;</tspan></text><text x="304" y="1171" text-anchor="end" font-size="12" fill="#1c1917">130<tspan fill="#b8860b">&#x2605;</tspan></text><text x="372" y="1171" text-anchor="end" font-size="12" fill="#1c1917">63<tspan fill="#b8860b">&#x2605;</tspan></text><text x="440" y="1171" text-anchor="end" font-size="12" fill="#1c1917">37<tspan fill="#b8860b">&#x2605;</tspan></text><text x="516" y="1171" text-anchor="end" font-size="12" fill="#1c1917">61<tspan fill="#b8860b">&#x2605;</tspan></text><text x="592" y="1171" text-anchor="end" font-size="12" fill="#1c1917">23<tspan fill="#b8860b">&#x2605;</tspan></text><text x="640" y="1171" text-anchor="end" font-size="12" fill="#1c1917">2<tspan fill="#b8860b">&#x2605;</tspan></text><text x="696" y="1171" text-anchor="end" font-size="12" fill="#1c1917">5<tspan fill="#b8860b">&#x2605;</tspan></text><text x="796" y="1171" text-anchor="end" font-size="12" fill="#1c1917">2<tspan fill="#b8860b">&#x2605;</tspan></text>
+  <text x="28" y="1200" font-size="12" fill="#57534e">★ is the high mark in that column.</text>
+  <text x="28" y="1218" font-size="12" fill="#57534e">2024 is the floor, not a failure — 10 → 130 commit days is the story.</text>
   </g>
-  <text x="445.6" y="566" font-size="9" fill="#8a8175">2024</text>
-  <text x="587.4" y="566" font-size="9" fill="#8a8175">2025</text>
-  <text x="729.3" y="566" font-size="9" fill="#8a8175">2026</text>
-  <text x="436" y="582" font-size="10" fill="#57534e">10 &#x2192; 101 &#x2192; 130 days/year.</text>
-
-  <!-- row 2 -->
-  <text x="28" y="602" font-size="11" font-weight="600" fill="#78716c">PULL REQUESTS</text>
-  <rect x="340.7" y="592" width="7" height="7" fill="#2f6fce"/>
-  <text x="350" y="599" font-size="9" fill="#8a8175">own</text>
-  <rect x="363.7" y="592" width="7" height="7" fill="#c9781f"/>
-  <text x="373" y="599" font-size="9" fill="#8a8175">ext</text>
-  <line x1="37.6" y1="684" x2="404.0" y2="684" stroke="#ded3bd"/>
-  <line x1="179.4" y1="614" x2="179.4" y2="684" stroke="#ded3bd" stroke-dasharray="3 4"/>
-  <line x1="321.3" y1="614" x2="321.3" y2="684" stroke="#ded3bd" stroke-dasharray="3 4"/>
-  <text x="35.7" y="618" text-anchor="end" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#a39a8b">18</text>
-  <polyline fill="none" stroke="#2f6fce" stroke-width="2" points="37.6,684.0 250.4,644.6 262.2,635.9 321.3,635.9 333.1,627.1 404.0,640.3"/>
-  <polyline fill="none" stroke="#c9781f" stroke-width="2" points="37.6,684.0 321.3,618.4 333.1,675.3 344.9,653.4 356.8,679.6 404.0,631.5"/>
-  <g font-size="8" font-family="ui-monospace, Consolas, monospace">
-    <text x="250.4" y="640" text-anchor="middle" fill="#2f6fce">11</text>
-    <text x="333.1" y="623" text-anchor="middle" fill="#2f6fce">18</text>
-    <text x="404.0" y="655" text-anchor="end" fill="#2f6fce">10</text>
-    <text x="321.3" y="614" text-anchor="middle" fill="#c9781f">15</text>
-    <text x="356.8" y="694" text-anchor="middle" fill="#c9781f">12</text>
-  </g>
-  <text x="37.6" y="698" font-size="9" fill="#8a8175">2024</text>
-  <text x="179.4" y="698" font-size="9" fill="#8a8175">2025</text>
-  <text x="321.3" y="698" font-size="9" fill="#8a8175">2026</text>
-  <text x="28" y="714" font-size="10" fill="#57534e">Own PRs from Jul &#39;25; ext PRs from Jan &#39;26.</text>
-
-  <text x="436" y="602" font-size="11" font-weight="600" fill="#78716c">MERGED PRs</text>
-  <rect x="748.7" y="592" width="7" height="7" fill="#2f6fce"/>
-  <text x="758" y="599" font-size="9" fill="#8a8175">own</text>
-  <rect x="771.7" y="592" width="7" height="7" fill="#c9781f"/>
-  <text x="781" y="599" font-size="9" fill="#8a8175">ext</text>
-  <line x1="445.6" y1="684" x2="812.0" y2="684" stroke="#ded3bd"/>
-  <line x1="587.4" y1="614" x2="587.4" y2="684" stroke="#ded3bd" stroke-dasharray="3 4"/>
-  <line x1="729.3" y1="614" x2="729.3" y2="684" stroke="#ded3bd" stroke-dasharray="3 4"/>
-  <text x="443.7" y="618" text-anchor="end" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#a39a8b">16</text>
-  <polyline fill="none" stroke="#2f6fce" stroke-width="2" points="445.6,684.0 658.4,657.8 670.2,631.5 729.3,635.9 741.1,627.1 812.0,640.2"/>
-  <polyline fill="none" stroke="#c9781f" stroke-width="2" points="445.6,684.0 729.3,618.4 741.1,679.6 753.0,666.5 764.8,679.6 812.0,675.2"/>
-  <g font-size="8" font-family="ui-monospace, Consolas, monospace">
-    <text x="658.4" y="653" text-anchor="middle" fill="#2f6fce">12</text>
-    <text x="741.1" y="623" text-anchor="middle" fill="#2f6fce">16</text>
-    <text x="812.0" y="655" text-anchor="end" fill="#2f6fce">10</text>
-    <text x="729.3" y="614" text-anchor="middle" fill="#c9781f">15</text>
-  </g>
-  <text x="445.6" y="698" font-size="9" fill="#8a8175">2024</text>
-  <text x="587.4" y="698" font-size="9" fill="#8a8175">2025</text>
-  <text x="729.3" y="698" font-size="9" fill="#8a8175">2026</text>
-  <text x="436" y="714" font-size="10" fill="#57534e">Ext merge spike Jan &#39;26 (MES).</text>
-
-  <!-- row 3 -->
-  <text x="28" y="734" font-size="11" font-weight="600" fill="#78716c">REPOS CREATED</text>
-  <line x1="37.6" y1="816" x2="404.0" y2="816" stroke="#ded3bd"/>
-  <line x1="179.4" y1="746" x2="179.4" y2="816" stroke="#ded3bd" stroke-dasharray="3 4"/>
-  <line x1="321.3" y1="746" x2="321.3" y2="816" stroke="#ded3bd" stroke-dasharray="3 4"/>
-  <text x="35.7" y="750" text-anchor="end" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#a39a8b">5</text>
-  <g fill="#7c4fd1">
-    <rect x="129.8" y="802.0" width="4.8" height="14" rx="1"/>
-    <rect x="188.9" y="774.0" width="4.8" height="42" rx="1"/>
-    <rect x="200.7" y="802.0" width="4.8" height="14" rx="1"/>
-    <rect x="212.5" y="774.0" width="4.8" height="42" rx="1"/>
-    <rect x="224.3" y="802.0" width="4.8" height="14" rx="1"/>
-    <rect x="236.2" y="802.0" width="4.8" height="14" rx="1"/>
-    <rect x="248.0" y="788.0" width="4.8" height="28" rx="1"/>
-    <rect x="259.8" y="774.0" width="4.8" height="42" rx="1"/>
-    <rect x="330.8" y="802.0" width="4.8" height="14" rx="1"/>
-    <rect x="342.6" y="802.0" width="4.8" height="14" rx="1"/>
-    <rect x="354.4" y="788.0" width="4.8" height="28" rx="1"/>
-    <rect x="366.2" y="802.0" width="4.8" height="14" rx="1"/>
-    <rect x="378.0" y="802.0" width="4.8" height="14" rx="1"/>
-    <rect x="389.9" y="788.0" width="4.8" height="28" rx="1"/>
-    <rect x="401.7" y="746.0" width="4.8" height="70" rx="1"/>
-  </g>
-  <g font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#7c4fd1">
-    <text x="191.3" y="770" text-anchor="middle">3</text>
-    <text x="215.0" y="770" text-anchor="middle">3</text>
-    <text x="262.2" y="770" text-anchor="middle">3</text>
-    <text x="250.4" y="784" text-anchor="middle">2</text>
-    <text x="356.8" y="784" text-anchor="middle">2</text>
-    <text x="392.3" y="784" text-anchor="middle">2</text>
-    <text x="404.1" y="742" text-anchor="middle">5</text>
-  </g>
-  <text x="37.6" y="830" font-size="9" fill="#8a8175">2024</text>
-  <text x="179.4" y="830" font-size="9" fill="#8a8175">2025</text>
-  <text x="321.3" y="830" font-size="9" fill="#8a8175">2026</text>
-  <text x="28" y="846" font-size="10" fill="#57534e">2025 study cluster; Aug &#39;26 biggest birth month.</text>
-
-  <text x="436" y="734" font-size="11" font-weight="600" fill="#78716c">STARS (cumulative)</text>
-  <line x1="445.6" y1="816" x2="812.0" y2="816" stroke="#ded3bd"/>
-  <line x1="587.4" y1="746" x2="587.4" y2="816" stroke="#ded3bd" stroke-dasharray="3 4"/>
-  <line x1="729.3" y1="746" x2="729.3" y2="816" stroke="#ded3bd" stroke-dasharray="3 4"/>
-  <text x="443.7" y="750" text-anchor="end" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#a39a8b">5</text>
-  <polyline fill="none" stroke="#c9971f" stroke-width="2" points="445.6,816.0 729.3,816.0 753.0,802.0 788.4,802.0 800.2,774.0 812.0,746.0"/>
-  <circle cx="753.0" cy="802.0" r="3" fill="#c9971f"/>
-  <circle cx="800.2" cy="774.0" r="3" fill="#c9971f"/>
-  <circle cx="812.0" cy="746.0" r="3" fill="#c9971f"/>
-  <g font-size="8" font-family="ui-monospace, Consolas, monospace" fill="#c9971f">
-    <text x="753.0" y="796">1</text>
-    <text x="800.2" y="768">3</text>
-    <text x="812.0" y="740" text-anchor="end">5</text>
-  </g>
-  <text x="445.6" y="830" font-size="9" fill="#8a8175">2024</text>
-  <text x="587.4" y="830" font-size="9" fill="#8a8175">2025</text>
-  <text x="729.3" y="830" font-size="9" fill="#8a8175">2026</text>
-  <text x="436" y="846" font-size="10" fill="#57534e">5 stars, all 2026 (qml-vtk, insight-terminal).</text>
-
-  <!-- row 4, solo (odd one out) -->
-  <text x="28" y="866" font-size="11" font-weight="600" fill="#78716c">REVIEWS + ISSUES (too sparse for a line)</text>
-  <line x1="28" y1="918" x2="812" y2="918" stroke="#ded3bd"/>
-  <line x1="343.7" y1="878" x2="343.7" y2="918" stroke="#ded3bd" stroke-dasharray="3 4"/>
-  <line x1="639.5" y1="878" x2="639.5" y2="918" stroke="#ded3bd" stroke-dasharray="3 4"/>
-  <rect x="434.3" y="886" width="8" height="8" fill="#d1453d"/>
-  <rect x="508.3" y="886" width="8" height="8" fill="#d1453d"/>
-  <rect x="696" y="886" width="8" height="8" fill="#d1453d"/>
-  <text x="708" y="893" font-size="9" fill="#8a8175">issue</text>
-  <circle cx="491.6" cy="906" r="4" fill="#3a7fd6"/>
-  <circle cx="639.5" cy="906" r="4" fill="#3a7fd6"/>
-  <circle cx="760" cy="906" r="4" fill="#3a7fd6"/>
-  <circle cx="764" cy="906" r="4" fill="#3a7fd6"/>
-  <text x="772" y="893" font-size="9" fill="#8a8175">review</text>
-  <text x="28" y="930" font-size="9" fill="#8a8175">2024</text>
-  <text x="343.7" y="930" font-size="9" fill="#8a8175">2025</text>
-  <text x="639.5" y="930" font-size="9" fill="#8a8175">2026</text>
-  <text x="28" y="946" font-size="10" fill="#57534e">2 issues, 3 reviews &#x2014; not enough points to call a trend.</text>
-
-  <text x="28" y="982" font-size="11" font-weight="600" fill="#78716c">REPORT CARD</text>
-  <rect x="28" y="994" width="784" height="112" rx="6" fill="#fffdf8" stroke="#ded3bd"/>
-  <rect x="28" y="994" width="784" height="28" rx="6" fill="#f1e8d6"/>
-  <rect x="28" y="1008" width="784" height="14" fill="#f1e8d6"/>
-  <line x1="28" y1="1022" x2="812" y2="1022" stroke="#ded3bd"/>
-  <line x1="28" y1="1050" x2="812" y2="1050" stroke="#ede4d2"/>
-  <line x1="28" y1="1078" x2="812" y2="1078" stroke="#ede4d2"/>
-  <g font-size="11" font-weight="600" fill="#78716c">
-    <text x="40" y="1013">Year</text>
-    <text x="88" y="1013">Language</text>
-    <text x="200" y="1013" text-anchor="end">Repos</text>
-    <text x="252" y="1013" text-anchor="end">Long</text>
-    <text x="304" y="1013" text-anchor="end">Days</text>
-    <text x="372" y="1013" text-anchor="end">Own PRs</text>
-    <text x="440" y="1013" text-anchor="end">Ext PRs</text>
-    <text x="516" y="1013" text-anchor="end">Own mer</text>
-    <text x="592" y="1013" text-anchor="end">Ext mer</text>
-    <text x="640" y="1013" text-anchor="end">Rev</text>
-    <text x="696" y="1013" text-anchor="end">Stars</text>
-    <text x="796" y="1013" text-anchor="end">New repos</text>
-  </g>
-  <g font-size="12" fill="#1c1917">
-    <text x="40" y="1041">2024</text>
-    <text x="88" y="1041">-</text>
-    <text x="200" y="1041" text-anchor="end">1</text>
-    <text x="252" y="1041" text-anchor="end">1</text>
-    <text x="304" y="1041" text-anchor="end">10</text>
-    <text x="372" y="1041" text-anchor="end">0</text>
-    <text x="440" y="1041" text-anchor="end">0</text>
-    <text x="516" y="1041" text-anchor="end">0</text>
-    <text x="592" y="1041" text-anchor="end">0</text>
-    <text x="640" y="1041" text-anchor="end">0</text>
-    <text x="696" y="1041" text-anchor="end">0</text>
-    <text x="796" y="1041" text-anchor="end">1</text>
-    <text x="40" y="1069">2025</text>
-    <text x="88" y="1069">TypeScript</text>
-    <text x="200" y="1069" text-anchor="end">13</text>
-    <text x="252" y="1069" text-anchor="end">2<tspan fill="#b8860b">&#x2605;</tspan></text>
-    <text x="304" y="1069" text-anchor="end">101</text>
-    <text x="372" y="1069" text-anchor="end">24</text>
-    <text x="440" y="1069" text-anchor="end">0</text>
-    <text x="516" y="1069" text-anchor="end">22</text>
-    <text x="592" y="1069" text-anchor="end">0</text>
-    <text x="640" y="1069" text-anchor="end">1</text>
-    <text x="696" y="1069" text-anchor="end">0</text>
-    <text x="796" y="1069" text-anchor="end">14<tspan fill="#b8860b">&#x2605;</tspan></text>
-    <text x="40" y="1097" fill="#2f8a4e">2026</text>
-    <text x="88" y="1097" fill="#2f8a4e">GDScript</text>
-    <text x="200" y="1097" text-anchor="end" fill="#2f8a4e">17<tspan fill="#b8860b">&#x2605;</tspan></text>
-    <text x="252" y="1097" text-anchor="end" fill="#2f8a4e">2<tspan fill="#b8860b">&#x2605;</tspan></text>
-    <text x="304" y="1097" text-anchor="end" fill="#2f8a4e">130<tspan fill="#b8860b">&#x2605;</tspan></text>
-    <text x="372" y="1097" text-anchor="end" fill="#2f8a4e">63<tspan fill="#b8860b">&#x2605;</tspan></text>
-    <text x="440" y="1097" text-anchor="end" fill="#2f8a4e">37<tspan fill="#b8860b">&#x2605;</tspan></text>
-    <text x="516" y="1097" text-anchor="end" fill="#2f8a4e">61<tspan fill="#b8860b">&#x2605;</tspan></text>
-    <text x="592" y="1097" text-anchor="end" fill="#2f8a4e">23<tspan fill="#b8860b">&#x2605;</tspan></text>
-    <text x="640" y="1097" text-anchor="end" fill="#2f8a4e">2<tspan fill="#b8860b">&#x2605;</tspan></text>
-    <text x="696" y="1097" text-anchor="end" fill="#2f8a4e">5<tspan fill="#b8860b">&#x2605;</tspan></text>
-    <text x="796" y="1097" text-anchor="end" fill="#2f8a4e">13</text>
-  </g>
-  <text x="28" y="1128" font-size="12" fill="#57534e">&#x2605; is the high mark in that column. 2025 birthed the most repos (14). 2026 took the rest.</text>
-  <text x="28" y="1146" font-size="12" fill="#57534e">2024 is the floor, not a failure. 10 &#x2192; 101 commit days is the whole story starting.</text>
-
-  <text x="28" y="1182" font-size="13" font-weight="600" fill="#57534e">2024 Quiet Year</text>
-  <text x="28" y="1204" font-size="12" fill="#1c1917">
-    <tspan x="28" dy="0">Contributions exist only in Jul and Q4 (10 commit days). One repo: the profile README.</tspan>
-    <tspan x="28" dy="18">Zero PRs, reviews, stars &#x2014; the floor of every chart.</tspan>
+  <g class="notes-fade">
+  <text x="28" y="1258" font-size="13" font-weight="600" fill="#57534e">2024 Quiet Year</text>
+  <text x="28" y="1280" font-size="12" fill="#1c1917">
+    <tspan x="28" dy="0">1 repo created (seuthootDev), 0 still active a year later.</tspan>
+    <tspan x="28" dy="18">1 public repos. 0 lived past a year.</tspan>
   </text>
 
-  <text x="28" y="1256" font-size="13" font-weight="600" fill="#57534e">2025 Builder</text>
-  <text x="28" y="1278" font-size="12" fill="#1c1917">
-    <tspan x="28" dy="0">Repos spawn Feb&#x2013;Aug. Commit days and own PRs explode in Jul&#x2013;Sep on hanghae-plus.</tspan>
-    <tspan x="28" dy="18">Then a dead Q4 (2&#x2013;3 contribs a month). Still no external PRs and no stars.</tspan>
+  <text x="28" y="1332" font-size="13" font-weight="600" fill="#57534e">2025 Builder</text>
+  <text x="28" y="1354" font-size="12" fill="#1c1917">
+    <tspan x="28" dy="0">TypeScript was the main language. 2 repos created (notes-app and hanghae99-backend-week1), 2 still active a year later.</tspan>
+    <tspan x="28" dy="18">22 of 24 pull requests merged, all in your own repos.</tspan>
   </text>
 
-  <text x="28" y="1330" font-size="13" font-weight="600" fill="#2f8a4e">2026 Open Source Contributor</text>
-  <text x="28" y="1352" font-size="12" fill="#1c1917">
-    <tspan x="28" dy="0">Jan: 173 contribs and the first external PR wave (MES). Jun own-PR spike (plc-app).</tspan>
-    <tspan x="28" dy="18">Jul quiet, then Aug is the max month: 214 contribs, readme-tool PRs, 5 repos, and the star cluster.</tspan>
-  </text>
+  <text x="28" y="1406" font-size="13" font-weight="600" fill="#2f8a4e">2026 Open Source Contributor</text>
+  <text x="28" y="1428" font-size="12" fill="#1c1917">
+    <tspan x="28" dy="0">External PRs landed (someone-else/Distributed_MES) this year.</tspan>
+    <tspan x="28" dy="18">100 pull requests opened, 84 merged — 23 in someone else’s repo.</tspan>
+  </text></g>
 </svg>

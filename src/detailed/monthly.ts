@@ -10,7 +10,7 @@ export function monthLabels(years: DetailedYearData[]): string[] {
   return labels;
 }
 
-function monthIndex(years: DetailedYearData[], isoDate: string): number {
+export function monthIndex(years: DetailedYearData[], isoDate: string): number {
   const d = new Date(isoDate);
   const year = d.getUTCFullYear();
   const month = d.getUTCMonth(); // 0-indexed

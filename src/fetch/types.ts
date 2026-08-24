@@ -17,4 +17,6 @@ export interface RawYearData {
   ownPROpenedEvents: Array<{ repo: string; date: string }>;
   externalPROpenedEvents: Array<{ repo: string; date: string }>;
   starEvents: Array<{ repo: string; starredAt: string }>;
+  reviewEvents: Array<{ repo: string; date: string }>;
+  issueEvents: Array<{ repo: string; date: string }>;
 }

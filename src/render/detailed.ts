@@ -1,5 +1,5 @@
-import { chartGridSlots, buildPolylinePoints, buildBars, type PlotArea } from './chart';
-import { bucketByMonth, bucketCumulativeByMonth, monthLabels } from '../detailed/monthly';
+import { chartGridSlots, buildPolylinePoints, buildBars, pointAt, type PlotArea } from './chart';
+import { bucketByMonth, bucketCumulativeByMonth, monthLabels, monthIndex } from '../detailed/monthly';
 import { buildReportCard, type ReportCardRow } from '../detailed/reportcard';
 import { buildYearNote } from '../detailed/notes';
 import { selectHero, selectMoreMoments, type HeroMoment, type Moment } from '../detailed/moments';
@@ -18,7 +18,9 @@ function escapeXml(text: string): string {
 }
 
 export const CARD_STYLE = `
-  .hero-fade, .moment-fade, .polaroid { opacity: 0; animation: memFadeIn 0.9s ease-out forwards; }
+  .hero-fade, .moment-fade, .polaroid, .divider-fade, .chart-fade, .reportcard-fade, .notes-fade {
+    opacity: 0; animation: memFadeIn 0.9s ease-out forwards;
+  }
   .polaroid { animation-delay: 0s; animation-duration: 1.1s; }
   .hero-fade.d1 { animation-delay: .35s; }
   .hero-fade.d2 { animation-delay: .6s; }
@@ -29,9 +31,22 @@ export const CARD_STYLE = `
   .moment-fade.m1 { animation-delay: 1.85s; }
   .moment-fade.m2 { animation-delay: 2.0s; }
   .moment-fade.m3 { animation-delay: 2.15s; }
+  .moment-fade.m4 { animation-delay: 2.3s; }
+  .moment-fade.m5 { animation-delay: 2.45s; }
+  .moment-fade.m6 { animation-delay: 2.6s; }
+  .moment-fade.m7 { animation-delay: 2.75s; }
+  .divider-fade { animation-delay: 2.9s; }
+  .chart-fade.row0 { animation-delay: 3.05s; }
+  .chart-fade.row1 { animation-delay: 3.2s; }
+  .chart-fade.row2 { animation-delay: 3.35s; }
+  .chart-fade.row3 { animation-delay: 3.5s; }
+  .reportcard-fade { animation-delay: 3.7s; }
+  .notes-fade { animation-delay: 3.9s; }
   @keyframes memFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
   @media (prefers-reduced-motion: reduce) {
-    .hero-fade, .moment-fade, .polaroid { animation: none; opacity: 1; transform: none; }
+    .hero-fade, .moment-fade, .polaroid, .divider-fade, .chart-fade, .reportcard-fade, .notes-fade {
+      animation: none; opacity: 1; transform: none;
+    }
   }
 `;
 
@@ -114,7 +129,30 @@ interface ChartSpec {
   values: number[];
   max: number;
   caption: string;
-  kind: 'line' | 'bars';
+  kind: 'line' | 'bars' | 'events';
+  events?: Array<{ index: number; type: 'review' | 'issue' }>;
+}
+
+function topPeakIndices(values: number[], count: number): number[] {
+  return values
+    .map((v, i) => ({ v, i }))
+    // Only the rising edge of a run of equal values (e.g. a flat plateau at the top of a
+    // cumulative chart) — otherwise several adjacent months tied at the same value would
+    // each get their own label, reading as redundant repetition rather than a peak.
+    .filter((p) => p.v > 0 && (p.i === 0 || p.v !== values[p.i - 1]))
+    .sort((a, b) => b.v - a.v)
+    .slice(0, count)
+    .map((p) => p.i)
+    .sort((a, b) => a - b);
+}
+
+function renderPeakLabels(values: number[], plot: PlotArea, max: number, color: string, count: number): string {
+  return topPeakIndices(values, count)
+    .map((i) => {
+      const { x, y } = pointAt(values, i, plot, max);
+      return `<text x="${x.toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="${color}">${values[i]}</text>`;
+    })
+    .join('');
 }
 
 function renderChart(
@@ -133,9 +171,26 @@ function renderChart(
   let body: string;
   if (spec.kind === 'bars') {
     const bars = buildBars(spec.values, plot, spec.max, 4.8);
-    body = bars.map((b) => `<rect x="${b.x.toFixed(1)}" y="${b.y.toFixed(1)}" width="4.8" height="${b.height.toFixed(1)}" rx="1" fill="${spec.color}"/>`).join('');
+    body =
+      bars.map((b) => `<rect x="${b.x.toFixed(1)}" y="${b.y.toFixed(1)}" width="4.8" height="${b.height.toFixed(1)}" rx="1" fill="${spec.color}"/>`).join('') +
+      renderPeakLabels(spec.values, plot, spec.max, spec.color, 2);
+  } else if (spec.kind === 'events') {
+    const stepX = totalMonths <= 1 ? 0 : plot.width / (totalMonths - 1);
+    const reviewY = plot.y + plot.height * 0.35;
+    const issueY = plot.y + plot.height * 0.75;
+    body = (spec.events ?? [])
+      .map((e) => {
+        const x = plot.x + e.index * stepX;
+        if (e.type === 'review') {
+          return `<circle cx="${x.toFixed(1)}" cy="${reviewY.toFixed(1)}" r="4" fill="#3a7fd6"/>`;
+        }
+        return `<rect x="${(x - 4).toFixed(1)}" y="${(issueY - 4).toFixed(1)}" width="8" height="8" fill="#d1453d"/>`;
+      })
+      .join('');
   } else {
-    body = `<polyline fill="none" stroke="${spec.color}" stroke-width="2" points="${buildPolylinePoints(spec.values, plot, spec.max)}"/>`;
+    body =
+      `<polyline fill="none" stroke="${spec.color}" stroke-width="2" points="${buildPolylinePoints(spec.values, plot, spec.max)}"/>` +
+      renderPeakLabels(spec.values, plot, spec.max, spec.color, 3);
   }
   const tickStepX = totalMonths <= 1 ? 0 : plot.width / (totalMonths - 1);
   const yearTickLabels = yearTicks
@@ -144,10 +199,14 @@ function renderChart(
       return `<text x="${x.toFixed(1)}" y="${(plotBottom + 11).toFixed(1)}" font-size="8" fill="${INK_TERTIARY}">${year}</text>`;
     })
     .join('');
+  const axisMaxLabel =
+    spec.kind === 'events'
+      ? ''
+      : `<text x="${plot.x - 2}" y="${plot.y + 4}" text-anchor="end" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#a39a8b">${Math.round(spec.max)}</text>`;
   return `
   <text x="${slot.x}" y="${slot.y}" font-size="11" font-weight="600" fill="${INK_LABEL}">${escapeXml(spec.label)}</text>
   <line x1="${plot.x}" y1="${plotBottom}" x2="${plot.x + plot.width}" y2="${plotBottom}" stroke="#ded3bd"/>
-  <text x="${plot.x - 2}" y="${plot.y + 4}" text-anchor="end" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#a39a8b">${Math.round(spec.max)}</text>
+  ${axisMaxLabel}
   ${body}
   ${yearTickLabels}
   <text x="${slot.x}" y="${plotBottom + 30}" font-size="10" fill="${INK_SECONDARY}">${escapeXml(spec.caption)}</text>`;
@@ -171,6 +230,17 @@ export function buildChartSpecs(years: DetailedYearData[]): ChartSpec[] {
   const totalExtMerged = years.reduce((s, y) => s + y.externalMergedCount, 0);
   const totalStars = years.reduce((s, y) => s + y.metrics.starsGained, 0);
   const totalDays = years.reduce((s, y) => s + y.metrics.commitDays, 0);
+  const totalReviews = years.reduce((s, y) => s + y.reviewEvents.length, 0);
+  const totalIssues = years.reduce((s, y) => s + y.issueEvents.length, 0);
+
+  const reviewEvents = years
+    .flatMap((y) => y.reviewEvents.map((e) => monthIndex(years, e.date)))
+    .filter((i) => i >= 0)
+    .map((index) => ({ index, type: 'review' as const }));
+  const issueEvents = years
+    .flatMap((y) => y.issueEvents.map((e) => monthIndex(years, e.date)))
+    .filter((i) => i >= 0)
+    .map((index) => ({ index, type: 'issue' as const }));
 
   return [
     {
@@ -222,12 +292,13 @@ export function buildChartSpecs(years: DetailedYearData[]): ChartSpec[] {
       kind: 'line',
     },
     {
-      label: 'REVIEWS + ISSUES (too sparse for a line)',
+      label: 'REVIEWS + ISSUES',
       color: '#d1453d',
       values: [],
       max: 1,
-      caption: `${years.reduce((s, y) => s + y.metrics.reviews, 0)} reviews across the window.`,
-      kind: 'line',
+      caption: `${totalReviews} reviews, ${totalIssues} issues across the window.`,
+      kind: 'events',
+      events: [...reviewEvents, ...issueEvents],
     },
   ];
 }
@@ -246,7 +317,15 @@ function renderChartsGrid(years: DetailedYearData[], startY: number): { svg: str
     .map((label, index) => ({ label, index }))
     .filter(({ label }) => label.endsWith('-01'))
     .map(({ label, index }) => ({ year: Number(label.slice(0, 4)), index }));
-  const svg = specs.map((spec, i) => renderChart(spec, slots[i], yearTicks, labels.length)).join('\n');
+  const rowIndexByY = new Map<number, number>();
+  const svg = specs
+    .map((spec, i) => {
+      const slot = slots[i];
+      if (!rowIndexByY.has(slot.y)) rowIndexByY.set(slot.y, rowIndexByY.size);
+      const row = rowIndexByY.get(slot.y)!;
+      return `<g class="chart-fade row${row}">${renderChart(spec, slot, yearTicks, labels.length)}</g>`;
+    })
+    .join('\n');
   const lastRowY = Math.max(...slots.map((s) => s.y));
   return { svg, endY: lastRowY + ROW_HEIGHT - 10 };
 }
@@ -315,7 +394,9 @@ function reportCardReading(rows: ReportCardRow[], highs: Set<string>): [string, 
 
 function renderReportCard(years: DetailedYearData[], startY: number): { svg: string; endY: number } {
   const { rows, highs } = buildReportCard(years);
-  const headerY = startY + 15;
+  // Table box top is startY+12; header text sits 19px into that box (matching the
+  // original design reference), not flush against the top border.
+  const headerY = startY + 12 + 19;
   const rowHeight = 28;
   const cols: Array<{ key: keyof (typeof rows)[number]; label: string; x: number }> = [
     { key: 'year', label: 'Year', x: 12 },
@@ -353,12 +434,14 @@ function renderReportCard(years: DetailedYearData[], startY: number): { svg: str
   const tableEndY = startY + 12 + tableHeight;
   const [reading1, reading2] = reportCardReading(rows, highs);
   const svg = `
+  <g class="reportcard-fade">
   <text x="${MARGIN}" y="${startY}" font-size="11" font-weight="600" fill="${INK_LABEL}">REPORT CARD</text>
   <rect x="${MARGIN}" y="${startY + 12}" width="${CONTENT_WIDTH}" height="${tableHeight}" rx="6" fill="#fffdf8" stroke="#ded3bd"/>
   ${header}
   ${dataRows}
   <text x="${MARGIN}" y="${tableEndY + 20}" font-size="12" fill="${INK_SECONDARY}">${escapeXml(reading1)}</text>
-  <text x="${MARGIN}" y="${tableEndY + 38}" font-size="12" fill="${INK_SECONDARY}">${escapeXml(reading2)}</text>`;
+  <text x="${MARGIN}" y="${tableEndY + 38}" font-size="12" fill="${INK_SECONDARY}">${escapeXml(reading2)}</text>
+  </g>`;
   return { svg, endY: tableEndY + 38 + 10 };
 }
 
@@ -382,7 +465,7 @@ function renderYearNotes(
   </text>`);
     y += 74;
   }
-  return { svg: parts.join('\n'), endY: y };
+  return { svg: `<g class="notes-fade">${parts.join('\n')}</g>`, endY: y };
 }
 
 export function renderDetailedSvg(
@@ -430,9 +513,11 @@ export function renderDetailedSvg(
   <text x="${MARGIN}" y="34" font-size="18" font-weight="700" fill="${INK}">${escapeXml(username)} · full journey</text>
   <text x="${MARGIN}" y="54" font-family="ui-monospace, Consolas, monospace" font-size="11" fill="#44403c">${escapeXml(arcLine)}</text>
   ${heroSvg}
+  <g class="divider-fade">
   <line x1="${MARGIN}" y1="${analysisLabelY - 16}" x2="${CARD_WIDTH - MARGIN}" y2="${analysisLabelY - 16}" stroke="#ded3bd"/>
   <text x="${MARGIN}" y="${analysisLabelY}" font-size="11" font-weight="600" fill="${INK_LABEL}" letter-spacing="1">ANALYSIS</text>
   <text x="${MARGIN + 58}" y="${analysisLabelY}" font-size="11" fill="#8a8175">— the numbers behind the story above</text>
+  </g>
   ${chartsSvg}
   ${reportCardSvg}
   ${notesSvg}

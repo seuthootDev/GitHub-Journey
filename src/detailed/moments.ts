@@ -36,7 +36,7 @@ function earliest<T>(items: T[], dateOf: (t: T) => string): T | null {
   return items.reduce((min, item) => (dateOf(item) < dateOf(min) ? item : min));
 }
 
-export function selectMoreMoments(years: DetailedYearData[], hero: HeroMoment | null, max = 4): Moment[] {
+export function selectMoreMoments(years: DetailedYearData[], hero: HeroMoment | null, max = 8): Moment[] {
   const candidates: Moment[] = [];
   const seen = new Set<string>(hero ? [`${hero.name}|${hero.date}`] : []);
 

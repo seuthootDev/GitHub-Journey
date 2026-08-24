@@ -98,6 +98,51 @@ describe('fetchRawYear', () => {
     expect(calls).toContain('author:seuthootDev type:pr created:2024-01-01..2024-12-31 user:seuthootDev');
     expect(calls).toContain('author:seuthootDev type:pr created:2024-01-01..2024-12-31 -user:seuthootDev');
     expect(calls).toContain('reviewed-by:seuthootDev type:pr created:2024-01-01..2024-12-31');
+    expect(calls).toContain('is:issue author:seuthootDev created:2024-01-01..2024-12-31');
+  });
+
+  it('captures review and issue events with repo and creation date', async () => {
+    const octokit = makeOctokit({
+      rest: {
+        ...makeOctokit().rest,
+        search: {
+          issuesAndPullRequests: vi.fn((params: { q: string }) => {
+            if (params.q.startsWith('reviewed-by:')) {
+              return Promise.resolve({
+                data: {
+                  total_count: 1,
+                  items: [
+                    {
+                      repository_url: 'https://api.github.com/repos/someone-else/lib',
+                      created_at: '2026-01-10T00:00:00Z',
+                    },
+                  ],
+                },
+              });
+            }
+            if (params.q.startsWith('is:issue')) {
+              return Promise.resolve({
+                data: {
+                  total_count: 1,
+                  items: [
+                    {
+                      repository_url: 'https://api.github.com/repos/seuthootDev/proj-a',
+                      created_at: '2026-02-05T00:00:00Z',
+                    },
+                  ],
+                },
+              });
+            }
+            return Promise.resolve({ data: { total_count: 0, items: [] } });
+          }),
+        },
+      },
+    });
+
+    const result = await fetchRawYear(octokit as any, 'seuthootDev', 2026);
+
+    expect(result.reviewEvents).toEqual([{ repo: 'someone-else/lib', date: '2026-01-10T00:00:00Z' }]);
+    expect(result.issueEvents).toEqual([{ repo: 'seuthootDev/proj-a', date: '2026-02-05T00:00:00Z' }]);
   });
 
   it('counts stars gained in the target year from stargazer timestamps', async () => {
@@ -165,6 +210,7 @@ describe('fetchRawYear', () => {
               },
             }) // external PRs
             .mockResolvedValueOnce({ data: { total_count: 0, items: [] } }) // reviews
+            .mockResolvedValueOnce({ data: { total_count: 0, items: [] } }) // issues
             .mockResolvedValueOnce({ data: { total_count: 0, items: [] } }) // ownMerged
             .mockResolvedValueOnce({ data: { total_count: 0, items: [] } }), // externalMerged
         },
@@ -322,6 +368,7 @@ describe('fetchRawYear', () => {
             }) // own PRs
             .mockResolvedValueOnce({ data: { total_count: 0, items: [] } }) // external PRs
             .mockResolvedValueOnce({ data: { total_count: 0, items: [] } }) // reviews
+            .mockResolvedValueOnce({ data: { total_count: 0, items: [] } }) // issues
             .mockResolvedValueOnce({ data: { total_count: 0, items: [] } }) // ownMerged
             .mockResolvedValueOnce({ data: { total_count: 0, items: [] } }), // externalMerged
         },

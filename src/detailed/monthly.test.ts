@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { monthLabels, bucketByMonth, bucketCumulativeByMonth } from './monthly';
+import { monthLabels, bucketByMonth, bucketCumulativeByMonth, monthIndex } from './monthly';
 import type { DetailedYearData } from './types';
 
 function yearFixture(year: number, overrides: Partial<DetailedYearData> = {}): DetailedYearData {
@@ -14,6 +14,8 @@ function yearFixture(year: number, overrides: Partial<DetailedYearData> = {}): D
     ownPROpenedEvents: [],
     externalPROpenedEvents: [],
     starEvents: [],
+    reviewEvents: [],
+    issueEvents: [],
     commitDayDates: [],
     firstContributionDay: null,
     ...overrides,
@@ -26,6 +28,16 @@ describe('monthLabels', () => {
     expect(labels).toHaveLength(24);
     expect(labels[0]).toBe('2024-01');
     expect(labels[23]).toBe('2025-12');
+  });
+});
+
+describe('monthIndex', () => {
+  it('returns -1 for a date whose year is not in the window, without corrupting other buckets', () => {
+    const years = [yearFixture(2024), yearFixture(2025)];
+    expect(monthIndex(years, '2023-12-31')).toBe(-1);
+    expect(monthIndex(years, '2026-01-01')).toBe(-1);
+    expect(monthIndex(years, '2024-01-01')).toBe(0);
+    expect(monthIndex(years, '2025-12-31')).toBe(23);
   });
 });
 

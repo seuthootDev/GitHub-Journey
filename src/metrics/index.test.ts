@@ -20,6 +20,8 @@ function raw(overrides: Partial<RawYearData>): RawYearData {
     ownPROpenedEvents: [],
     externalPROpenedEvents: [],
     starEvents: [],
+    reviewEvents: [],
+    issueEvents: [],
     ...overrides,
   };
 }

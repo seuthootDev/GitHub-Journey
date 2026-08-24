@@ -32,6 +32,8 @@ function rawFixture(overrides: Partial<RawYearData> = {}): RawYearData {
     ownPROpenedEvents: [],
     externalPROpenedEvents: [],
     starEvents: [],
+    reviewEvents: [],
+    issueEvents: [],
     ...overrides,
   };
 }
@@ -76,6 +78,16 @@ describe('toDetailedYearData', () => {
     expect(result.metrics).toBe(metricsFixture);
   });
 
+  it('passes through reviewEvents/issueEvents unchanged', () => {
+    const raw = rawFixture({
+      reviewEvents: [{ repo: 'a/b', date: '2024-05-01' }],
+      issueEvents: [{ repo: 'c/d', date: '2024-06-01' }],
+    });
+    const result = toDetailedYearData(raw, metricsFixture);
+    expect(result.reviewEvents).toEqual([{ repo: 'a/b', date: '2024-05-01' }]);
+    expect(result.issueEvents).toEqual([{ repo: 'c/d', date: '2024-06-01' }]);
+  });
+
   it('passes through ownMergedCount/externalMergedCount straight from raw, even when they exceed the event array length', () => {
     const raw = rawFixture({
       ownMergedPRs: [{ repo: 'a/b', date: '2024-05-01' }],
@@ -100,6 +112,8 @@ function windowTotalsYearFixture(overrides: Partial<DetailedYearData> = {}): Det
     ownPROpenedEvents: [],
     externalPROpenedEvents: [],
     starEvents: [],
+    reviewEvents: [],
+    issueEvents: [],
     commitDayDates: [],
     firstContributionDay: null,
     ...overrides,

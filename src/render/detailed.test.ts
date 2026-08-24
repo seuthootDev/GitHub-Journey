@@ -87,9 +87,17 @@ function detailedYearFixture(year: number): DetailedYearData {
     ownPROpenedEvents: [],
     externalPROpenedEvents: [],
     starEvents: [],
+    reviewEvents: [],
+    issueEvents: [],
     commitDayDates: [`${year}-09-05`],
     firstContributionDay: `${year}-09-05`,
   };
+}
+
+function reportCardHeaderOffset(svg: string): number {
+  const tableTop = Number(svg.match(/<rect x="28" y="(\d+)" width="784" height="\d+" rx="6" fill="#fffdf8"/)?.[1]);
+  const headerY = Number(svg.match(/<text x="40" y="(\d+)" text-anchor="start" font-size="11" font-weight="600" fill="#78716c">Year</)?.[1]);
+  return headerY - tableTop;
 }
 
 const journeyYearFixture: JourneyYear = {
@@ -308,5 +316,132 @@ describe('buildChartSpecs REPOS CREATED (regression: production shape has the SA
     const reposCreatedSpec = specs.find((s) => s.label === 'REPOS CREATED')!;
     const totalBucketed = reposCreatedSpec.values.reduce((a, b) => a + b, 0);
     expect(totalBucketed).toBe(3); // distinct repos, not 3 repos * 3 years = 9
+  });
+});
+
+describe('buildChartSpecs REVIEWS + ISSUES', () => {
+  it('plots review and issue events at their correct month index instead of leaving the chart empty', () => {
+    const years: DetailedYearData[] = [
+      { ...detailedYearFixture(2024), reviewEvents: [{ repo: 'a/lib', date: '2024-03-15T00:00:00Z' }] },
+      { ...detailedYearFixture(2025), issueEvents: [{ repo: 'b/proj', date: '2025-06-01T00:00:00Z' }] },
+    ];
+    const specs = buildChartSpecs(years);
+    const spec = specs.find((s) => s.label === 'REVIEWS + ISSUES')!;
+    expect(spec.kind).toBe('events');
+    expect(spec.events).toEqual([
+      { index: 2, type: 'review' }, // March 2024
+      { index: 17, type: 'issue' }, // June 2025
+    ]);
+  });
+});
+
+describe('fade-in classes', () => {
+  it('gives the ANALYSIS divider, each chart row, the report card, and year notes their own fade group', () => {
+    const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [detailedYearFixture(2024)], [journeyYearFixture]);
+    expect(svg).toContain('class="divider-fade"');
+    expect(svg).toContain('class="chart-fade row0"');
+    expect(svg).toContain('class="chart-fade row1"');
+    expect(svg).toContain('class="chart-fade row2"');
+    expect(svg).toContain('class="chart-fade row3"'); // 7 charts -> solo 4th row
+    expect(svg).toContain('class="reportcard-fade"');
+    expect(svg).toContain('class="notes-fade"');
+  });
+
+  it('gives every one of up to 8 More Moments its own fade-delay class', () => {
+    const year: DetailedYearData = {
+      ...detailedYearFixture(2026),
+      externalMergedPRs: [{ repo: 'x/ext-merged', date: '2026-01-01T00:00:00Z' }],
+      starEvents: [
+        { repo: 'x/first-star', starredAt: '2026-01-02T00:00:00Z' },
+        { repo: 'x/later-star', starredAt: '2026-01-05T00:00:00Z' },
+      ],
+      ownMergedPRs: [
+        { repo: 'x/own-merged', date: '2026-02-01T00:00:00Z' },
+        { repo: 'x/peak-merge', date: '2026-03-01T00:00:00Z' },
+        { repo: 'x/peak-merge', date: '2026-03-05T00:00:00Z' },
+      ],
+      firstContributionDay: '2020-06-15',
+      repos: [
+        { name: 'seuthootDev', createdAt: '2019-01-01T00:00:00Z', pushedAt: '2019-01-01T00:00:00Z' },
+        { name: 'x/long-lived', createdAt: '2024-06-01T00:00:00Z', pushedAt: '2026-06-01T00:00:00Z' },
+      ],
+      commitDayDates: ['2026-04-01', '2026-04-02'],
+    };
+    const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [year], [{ ...journeyYearFixture, year: 2026 }]);
+    for (let i = 0; i < 8; i++) {
+      expect(svg).toContain(`class="moment-fade m${i}"`);
+    }
+  });
+});
+
+describe('report card header alignment (regression: header was rendering 16px too high, flush against the top border)', () => {
+  it('positions the header text 19px inside the report card box top, not flush against it', () => {
+    const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [detailedYearFixture(2024)], [journeyYearFixture]);
+    expect(reportCardHeaderOffset(svg)).toBe(19);
+  });
+
+  it('keeps each data row exactly one row-height (28px) below the header, so the whole table stays evenly spaced', () => {
+    const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [detailedYearFixture(2024)], [journeyYearFixture]);
+    const headerY = Number(svg.match(/<text x="40" y="(\d+)" text-anchor="start"[^>]*>Year</)?.[1]);
+    const firstRowY = Number(svg.match(/<text x="40" y="(\d+)" text-anchor="start" font-size="12" fill="#1c1917">2024</)?.[1]);
+    expect(firstRowY - headerY).toBe(28);
+  });
+});
+
+describe('chart peak-value labels', () => {
+  it('labels the highest points on a line chart with their actual values', () => {
+    const year: DetailedYearData = {
+      ...detailedYearFixture(2024),
+      commitDayDates: ['2024-01-05', '2024-01-06', '2024-01-07', '2024-06-01'],
+    };
+    const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [year], [journeyYearFixture]);
+    // CONTRIBUTIONS chart (green, #2f8a4e) peaks at 3 commit days in January.
+    expect(svg).toMatch(/fill="#2f8a4e">3</);
+  });
+
+  it('labels the rising edge of a plateau only once, not every adjacent month tied at the same value', () => {
+    // Three consecutive months at the cumulative max (a common shape for a cumulative-stars
+    // chart once new stars stop arriving) should produce exactly one peak label, not three.
+    const year: DetailedYearData = {
+      ...detailedYearFixture(2024),
+      starEvents: [
+        { repo: 'a', starredAt: '2024-01-05T00:00:00Z' },
+        { repo: 'a', starredAt: '2024-01-10T00:00:00Z' },
+      ],
+    };
+    const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [year], [journeyYearFixture]);
+    const starLabelMatches = svg.match(/fill="#c9971f">2</g);
+    expect(starLabelMatches?.length).toBe(1);
+  });
+
+  it('labels the tallest bars on the REPOS CREATED chart with their actual values', () => {
+    const year: DetailedYearData = {
+      ...detailedYearFixture(2024),
+      repos: [
+        { name: 'a', createdAt: '2024-01-01T00:00:00Z', pushedAt: '2024-01-01T00:00:00Z' },
+        { name: 'b', createdAt: '2024-01-15T00:00:00Z', pushedAt: '2024-01-15T00:00:00Z' },
+      ],
+    };
+    const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [year], [journeyYearFixture]);
+    expect(svg).toMatch(/fill="#7c4fd1">2</);
+  });
+});
+
+describe('REVIEWS + ISSUES rendering', () => {
+  it('draws a circle for each review and a square for each issue, and captions real counts', () => {
+    const year: DetailedYearData = {
+      ...detailedYearFixture(2024),
+      reviewEvents: [{ repo: 'a/lib', date: '2024-03-01T00:00:00Z' }],
+      issueEvents: [{ repo: 'c/proj', date: '2024-05-01T00:00:00Z' }],
+    };
+    const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [year], [journeyYearFixture]);
+    expect(svg).toContain('fill="#3a7fd6"'); // review circle color
+    expect(svg).toContain('fill="#d1453d"'); // issue square color
+    expect(svg).toContain('1 reviews, 1 issues across the window.');
+  });
+
+  it('renders no dots and a zero caption when there are no review/issue events, instead of crashing', () => {
+    const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [detailedYearFixture(2024)], [journeyYearFixture]);
+    expect(svg).toContain('0 reviews, 0 issues across the window.');
   });
 });

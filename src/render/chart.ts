@@ -10,6 +10,12 @@ function scaleY(value: number, max: number, plot: PlotArea): number {
   return plot.y + plot.height - (value / max) * plot.height;
 }
 
+export function pointAt(values: number[], index: number, plot: PlotArea, max: number): { x: number; y: number } {
+  const n = values.length;
+  const stepX = n <= 1 ? 0 : plot.width / (n - 1);
+  return { x: plot.x + index * stepX, y: scaleY(values[index], max, plot) };
+}
+
 export function buildPolylinePoints(values: number[], plot: PlotArea, max: number): string {
   const n = values.length;
   if (n === 0) return '';

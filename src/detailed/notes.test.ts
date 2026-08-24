@@ -30,6 +30,8 @@ function yearFixture(overrides: Partial<DetailedYearData['metrics']> = {}, extra
     ownPROpenedEvents: [],
     externalPROpenedEvents: [],
     starEvents: [],
+    reviewEvents: [],
+    issueEvents: [],
     commitDayDates: [],
     firstContributionDay: null,
     ...extra,

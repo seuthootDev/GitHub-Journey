@@ -14,6 +14,8 @@ function yearFixture(year: number, overrides: Partial<DetailedYearData> = {}): D
     ownPROpenedEvents: [],
     externalPROpenedEvents: [],
     starEvents: [],
+    reviewEvents: [],
+    issueEvents: [],
     commitDayDates: [],
     firstContributionDay: null,
     ...overrides,
@@ -59,7 +61,7 @@ describe('selectMoreMoments', () => {
     ]);
   });
 
-  it('caps at 4 and never includes the hero repo/date', () => {
+  it('never includes the hero repo/date, and stays within a small fixture\'s real candidate count', () => {
     const years = [
       yearFixture(2026, {
         externalMergedPRs: [
@@ -75,6 +77,28 @@ describe('selectMoreMoments', () => {
     const moments = selectMoreMoments(years, hero);
     expect(moments.length).toBeLessThanOrEqual(4);
     expect(moments.some((m) => m.name === hero.name)).toBe(false);
+  });
+
+  it('caps at 8 (the full tier1+tier2 candidate pool), not 4', () => {
+    const years = [
+      yearFixture(2026, {
+        externalMergedPRs: [{ repo: 'x/ext-merged', date: '2026-01-01T00:00:00Z' }],
+        starEvents: [
+          { repo: 'x/first-star', starredAt: '2026-01-02T00:00:00Z' },
+          { repo: 'x/later-star', starredAt: '2026-01-05T00:00:00Z' },
+        ],
+        ownMergedPRs: [
+          { repo: 'x/own-merged', date: '2026-02-01T00:00:00Z' },
+          { repo: 'x/peak-merge', date: '2026-03-01T00:00:00Z' },
+          { repo: 'x/peak-merge', date: '2026-03-05T00:00:00Z' },
+        ],
+        firstContributionDay: '2020-01-01',
+        repos: [{ name: 'x/long-lived', createdAt: '2024-06-01T00:00:00Z', pushedAt: '2026-06-01T00:00:00Z' }],
+        commitDayDates: ['2026-04-01', '2026-04-02'],
+      }),
+    ];
+    const moments = selectMoreMoments(years, hero);
+    expect(moments.length).toBe(8);
   });
 
   it('falls back to tier 2 (first contribution day) for a quiet, PR-less account', () => {

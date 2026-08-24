@@ -30,6 +30,8 @@ function yearFixture(year: number, metricsOverrides: any, eventOverrides: Partia
     ownPROpenedEvents: [],
     externalPROpenedEvents: [],
     starEvents: [],
+    reviewEvents: [],
+    issueEvents: [],
     commitDayDates: [],
     firstContributionDay: null,
     ...eventOverrides,

@@ -49,7 +49,7 @@ Do not invent hours-worked, productivity scores, or GitHub achievement badges
 | Title + arc | `Quiet Year → Builder → Open Source Contributor` (same story as the pin) |
 | **Hero moment** | Always the first public repo, shown big — an origin, not a stat. The photo you don't have. |
 | **Cumulative sentence** | One or two lines. The hug. |
-| **More moments** | Up to 4 dated, named moments (origin excluded — it's already the hero). The recall. |
+| **More moments** | Up to 8 dated, named moments (origin excluded — it's already the hero) — every tier 1 + tier 2 candidate the account has. The recall. |
 | **Analysis** (label) | The hand-off: everything below is evidence, not headline. |
 | Time series | Evidence. 2-up grid, one chart alone if the count is odd. Scale numbers on peaks. |
 | **Report card** | Year rollup table + ★ on column highs + 1–2 lines of reading |
@@ -99,27 +99,36 @@ direction and a flat white/black direction; neither read as "comfort" in review.
 
 - Text stays black/warm-gray only. Color lives in the illustration and in the (now
   darkened-for-light-background) chart line/bar colors — not in typography.
-- Hero, cumulative sentence, and More Moments fade in on load, staggered line by line
-  (CSS `@keyframes`, `opacity` + small `translateY`), respecting
-  `prefers-reduced-motion`. **Open item:** confirm this animation actually plays when the
-  SVG is embedded via `<img>` in a GitHub gist/README (some embed paths sanitize or
-  freeze SVG animation) — verify before shipping; a static first-frame render is an
-  acceptable fallback if it doesn't.
+- **The whole card fades in on load, staggered, not just the memory zone.** Hero,
+  cumulative sentence, and each of up to 8 More Moments fade first (CSS `@keyframes`,
+  `opacity` + small `translateY`); the ANALYSIS divider, each chart-grid row, the
+  report card, and year notes each get their own later fade-in group in that order, so
+  the eye is led from memory → evidence the same way it reads top to bottom. All
+  respect `prefers-reduced-motion`. **Open item:** confirm this animation actually
+  plays when the SVG is embedded via `<img>` in a GitHub gist/README (some embed paths
+  sanitize or freeze SVG animation) — verify before shipping; a static first-frame
+  render is an acceptable fallback if it doesn't.
 
 ### 3.4 Chart grid
 
 The 7 time-series/event charts render as a **2-column grid**, 3 rows of 2, with the
-7th (Reviews + Issues — always the sparsest, event-strip style) alone on its own
-full-width row at the end, before the report card. Report card and year notes stay
-full width, unchanged in structure.
+7th (Reviews + Issues) alone on its own full-width row at the end, before the report
+card. Report card and year notes stay full width, unchanged in structure.
 
-- Halving chart width means: fewer inline peak-value callouts than the pin's evidence
-  charts historically carried (axis max + 2–3 peak labels per line, not every point),
-  and shorter one-line captions. This is a legibility trade at small size, not a data cut
+- Halving chart width means fewer inline peak-value callouts than a full-width chart
+  could carry: each line/bar chart labels its **rising-edge peaks only** — up to 3 for
+  a line, 2 for bars — skipping any point whose value repeats the immediately
+  preceding point (a flat plateau at the top of a cumulative chart, e.g. STARS once
+  new stars stop landing, gets one label at the point it *reached* that height, not one
+  per month it stayed there). This is a legibility trade at small size, not a data cut
   — the renderer still has full monthly data; it just doesn't callout all of it.
-  `demo/detailed-card.svg` also simplifies the plotted *points* (not just labels) for
-  drawing-effort reasons in this hand-authored mock — the real renderer draws every
-  month.
+- Reviews + Issues is a real event-strip chart, not a placeholder: reviews plot as
+  small circles, issues as small squares, each at the month they happened, with a
+  caption naming the real totals. It needs its own fetch (§9) since neither reviews
+  nor issues previously carried a date, only a count.
+- Each chart also carries a small year-tick label (e.g. "2024") under its x-axis at
+  the start of each window year, so a reader can tell which end is which year without
+  cross-referencing the report card.
 
 ---
 
@@ -203,12 +212,12 @@ day with no repo list, the date itself).
 the hero block above the scenes list. Do not repeat it in More Moments — that would
 duplicate what the hero already told.
 
-Take **up to 4** (was 5 — the slot origin used to occupy is now the hero's). Walk
-**tier 1 then tier 2**, skipping the origin candidate specifically (§5.2 tier 1
-"first public repo" is removed from this list; it is always the hero, never optional).
-Skip any candidate whose data is missing. Do not backfill with a weaker duplicate of
-something already picked (e.g. do not add "first own PR" if "first own merge" is the
-same PR).
+Take **up to 8** — the full tier 1 + tier 2 candidate pool (5 + 3), origin excluded
+since it's always the hero. Walk **tier 1 then tier 2**, skipping the origin candidate
+specifically (§5.2 tier 1 "first public repo" is removed from this list; it is always
+the hero, never optional). Skip any candidate whose data is missing. Do not backfill
+with a weaker duplicate of something already picked (e.g. do not add "first own PR" if
+"first own merge" is the same PR).
 
 ### 5.1 Tier 1 — more memorable (collaboration / recognition / landing)
 
@@ -262,9 +271,9 @@ Hero is the origin. Tier 1 fills the rest of the list; tier 2 was not needed:
 | 3 | 2026-02 | qml-vtk-python-pyside6 | first star |
 | 4 | 2026-08 | insight-terminal-ascii | four more stars |
 
-Cap is now 4 (origin no longer competes for a slot). Rule of thumb when tier 1 alone
-produces more than 4: **keep first ext-merge, keep first star**, then fill with the
-rest of tier 1, then tier 2.
+Cap is 8 (the whole candidate pool; origin no longer competes for a slot). Since tier 1
+has only 5 candidates and tier 2 has 3, hitting the cap means the account has every
+kind of moment this spec tracks — a full list, not a truncated one.
 
 ---
 
@@ -323,6 +332,8 @@ repos, languages, long-lived.
 | Merged own / merged ext / `merged_at` month | `type:pr is:merged` + `user:` / `-user:` |
 | First contribution day | `contributionCalendar` (already fetched per year) |
 | First starred-at per repo | `star+json` (already used for yearly stars) |
+| Dated review events (repo + date) | `reviewed-by:` search items, not just `total_count` — needed so Reviews + Issues can plot points, not just count them |
+| Dated issue events (repo + date) | `is:issue author:` search, new query — issues were not fetched at all before this view |
 
 Out of scope: achievements, estimated hours, private-only activity.
 
@@ -409,11 +420,17 @@ Copy:
 - Hero is present for every account with at least one public repo, and is always the
   first public repo — never a "more impressive" scene, never absent when tier 1 has
   results.
-- More Moments length is `0 ≤ n ≤ 4` and never repeats the hero's repo/date.
+- More Moments length is `0 ≤ n ≤ 8` and never repeats the hero's repo/date.
 - Report card ★ count equals the number of columns that have a positive max
   (ties allowed).
 - Chart grid renders 3 rows of 2 plus one solo full-width row for the 7th chart; report
   card and year notes stay full width below it.
+- Every chart, the report card, and year notes each fade in as their own group,
+  staggered after the memory zone (hero/moments) finishes, not just the memory zone.
+- Reviews + Issues plots real dated points (circles for reviews, squares for issues)
+  and a real count in its caption; it is never a permanently empty chart.
+- A line/bar chart's peak labels never repeat the same value on adjacent points along
+  a plateau — only the point where that value was first reached is labeled.
 
 Pin and gist:
 
