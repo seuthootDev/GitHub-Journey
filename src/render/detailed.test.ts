@@ -1,62 +1,74 @@
 import { describe, it, expect } from 'vitest';
-import { renderHeroSection, renderDetailedSvg, heroSectionHeight, buildChartSpecs } from './detailed';
-import { selectHero, selectMoreMoments } from '../detailed/moments';
+import {
+  renderHeroSection,
+  renderDetailedSvg,
+  buildChartSpecs,
+  timelineMoments,
+  lastElapsedMonth,
+  yearSpan,
+} from './detailed';
 import type { DetailedYearData } from '../detailed/types';
 import type { JourneyYear } from '../types';
 
-describe('renderHeroSection', () => {
-  it('renders the hero name at hero scale and the cumulative sentence beneath it', () => {
-    const svg = renderHeroSection(
-      { date: '2024-09-01', name: 'seuthootDev' },
-      [{ date: '2025-07-03', name: 'a/hanghae99-backend-week1', why: 'first own PR merged' }],
-      ['You showed up 241 days in 3 years.', '124 pull requests opened, 106 merged — 23 in someone else’s repo.']
-    );
-    expect(svg).toContain('font-size="30" font-weight="700" fill="#1c1917">seuthootDev<');
-    expect(svg).toContain('You showed up 241 days in 3 years.');
-    expect(svg).toContain('2025-07-03');
-    expect(svg).toContain('first own PR merged');
-  });
+const LINES = ['You showed up 241 days in 3 years.', '124 pull requests opened, 106 merged — 23 in someone else’s repo.'];
 
-  it('omits the More Moments label entirely when there are no moments (spec: skip the slot, no filler)', () => {
-    const svg = renderHeroSection({ date: '2024-09-01', name: 'x' }, [], ['line1', 'line2']);
-    expect(svg).not.toContain('MORE MOMENTS');
+describe('renderHeroSection', () => {
+  it('shows the username at hero scale once, with the window, the arc line and the cumulative sentence', () => {
+    const { svg } = renderHeroSection('seuthootDev', 'From a quiet year to Rising Star', '2024 → 2026', { date: '2024-09-01', name: 'first-repo' }, LINES);
+    expect(svg).toContain('font-size="30" font-weight="700" fill="#1c1917">seuthootDev<');
+    expect(svg.match(/>seuthootDev</g)).toHaveLength(1);
+    expect(svg).toContain('FULL JOURNEY · 2024 → 2026');
+    expect(svg).toContain('From a quiet year to Rising Star');
+    expect(svg).toContain('You showed up 241 days in 3 years.');
+    expect(svg).toContain('first public repo, 2024-09-01');
   });
 
   it('never uses a dark background or colored text — only warm paper tokens', () => {
-    const svg = renderHeroSection({ date: '2024-09-01', name: 'x' }, [], ['line1', 'line2']);
+    const { svg } = renderHeroSection('x', 'arc', '2024', { date: '2024-09-01', name: 'x' }, ['line1', 'line2']);
     expect(svg).not.toMatch(/#0d1117|#161b22|#c9d1d9/); // old dark-theme tokens must not appear
   });
 
-  it('renders the cumulative sentence (and moments) even when hero is null, without the polaroid/THE START/name block', () => {
-    const svg = renderHeroSection(
-      null,
-      [{ date: '2024-03-05', name: '2024-03-05', why: 'first contribution day' }],
-      ['You showed up 12 days in 1 years.', '12 public repos. 0 lived past a year.']
-    );
-    expect(svg).toContain('You showed up 12 days in 1 years.');
-    expect(svg).toContain('MORE MOMENTS');
-    expect(svg).toContain('first contribution day');
-    expect(svg).not.toContain('THE START');
-    expect(svg).not.toContain('the floor this whole story climbs from');
+  it('drops the polaroid and the first-repo line when there is no hero, and is shorter for it', () => {
+    const withHero = renderHeroSection('x', 'arc', '2024', { date: '2024-09-01', name: 'x' }, LINES);
+    const without = renderHeroSection('x', 'arc', '2024', null, LINES);
+    expect(without.svg).toContain('You showed up 241 days in 3 years.');
+    expect(without.svg).not.toContain('class="polaroid"');
+    expect(without.svg).not.toContain('the floor this whole story climbs from');
+    expect(without.height).toBeLessThan(withHero.height);
   });
 
-  it('escapes hero.date and moment date fields (defense in depth, consistent with every other data-derived field)', () => {
-    const svg = renderHeroSection(
-      { date: '2024-09-01<script>', name: 'x' },
-      [{ date: '2024-03-05<b>', name: 'y', why: 'z' }],
-      ['line1', 'line2']
-    );
+  it('escapes the username, arc line and hero date (defense in depth, consistent with every other data-derived field)', () => {
+    const { svg } = renderHeroSection('<u>', '<a>', '2024', { date: '2024-09-01<script>', name: 'x' }, ['line1', 'line2']);
     expect(svg).not.toContain('<script>');
-    expect(svg).not.toContain('<b>');
+    expect(svg).not.toContain('<u>');
+    expect(svg).not.toContain('<a>');
     expect(svg).toContain('&lt;script&gt;');
-    expect(svg).toContain('&lt;b&gt;');
   });
 });
 
-describe('heroSectionHeight', () => {
-  it('returns a smaller height when there is no hero block (hasHero=false) than when there is (hasHero=true), for the same moments count', () => {
-    expect(heroSectionHeight(0, false)).toBeLessThan(heroSectionHeight(0, true));
-    expect(heroSectionHeight(2, false)).toBeLessThan(heroSectionHeight(2, true));
+describe('yearSpan', () => {
+  it('names the window from first to last year', () => {
+    expect(yearSpan([{ year: 2024 }, { year: 2025 }, { year: 2026 }])).toBe('2024 → 2026');
+    expect(yearSpan([{ year: 2026 }])).toBe('2026');
+    expect(yearSpan([])).toBe('');
+  });
+});
+
+describe('timelineMoments', () => {
+  it('merges the hero into the moments and orders everything by date', () => {
+    const items = timelineMoments({ date: '2024-09-24', name: 'seuthootDev' }, [
+      { date: '2026-03-30', name: 'inttter/md-badges', why: 'first external PR, merged' },
+      { date: '2024-07-10', name: '2024-07-10', why: 'first contribution day' },
+      { date: '2025-08-01', name: '2025-08', why: 'busiest month (24 commit days)' },
+    ]);
+    expect(items.map((m) => m.date)).toEqual(['2024-07-10', '2024-09-24', '2025-08', '2026-03-30']);
+    expect(items[1].label).toBe('first public repo · seuthootDev');
+    expect(items[3].label).toBe('first external PR, merged · inttter/md-badges');
+  });
+
+  it('shows a date-named moment once instead of "2024-07-10 · 2024-07-10"', () => {
+    const [m] = timelineMoments(null, [{ date: '2024-07-10', name: '2024-07-10', why: 'first contribution day' }]);
+    expect(m).toEqual({ date: '2024-07-10', label: 'first contribution day', at: '2024-07-10' });
   });
 });
 
@@ -117,15 +129,41 @@ describe('renderDetailedSvg', () => {
     expect(svg).not.toMatch(/#0d1117|#161b22/);
   });
 
-  it('lays out 7 charts as 3 rows of 2 plus a solo full-width row', () => {
+  it('stacks one chart row per signal on the shared month axis, with no duplicate commit-day chart', () => {
     const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [detailedYearFixture(2024)], [journeyYearFixture]);
-    expect(svg).toContain('CONTRIBUTIONS');
-    expect(svg).toContain('COMMIT DAYS');
-    expect(svg).toContain('PULL REQUESTS');
-    expect(svg).toContain('MERGED PRs');
-    expect(svg).toContain('REPOS CREATED');
-    expect(svg).toContain('STARS');
-    expect(svg).toContain('REVIEWS + ISSUES');
+    for (const label of ['COMMIT DAYS', 'PULL REQUESTS', 'REPOS CREATED', 'STARS', 'REVIEWS · ISSUES']) {
+      expect(svg).toContain(`>${label}<`);
+    }
+    expect(svg).not.toContain('CONTRIBUTIONS'); // was the same series as COMMIT DAYS
+    expect(svg).not.toContain('MERGED PRs'); // merged now shares the PULL REQUESTS row
+    expect(svg).toContain('>opened<');
+    expect(svg).toContain('>merged<');
+  });
+
+  it('heads each year column with its archetype and reason, marking the current year', () => {
+    const years = [detailedYearFixture(2025), detailedYearFixture(2026)];
+    const svg = renderDetailedSvg(
+      'seuthootDev',
+      'arc',
+      years,
+      [
+        { ...journeyYearFixture, year: 2025, archetype: 'Builder', reason: { kind: 'metric', icon: '📦', text: '2 long-lived' }, isCurrent: false },
+        { ...journeyYearFixture, year: 2026, archetype: 'Rising Star', reason: { kind: 'metric', icon: '⭐', text: '+14 stars' }, isCurrent: true },
+      ],
+      new Date('2026-10-15T00:00:00Z')
+    );
+    expect(svg).toContain('>Builder<');
+    expect(svg).toContain('📦 2 long-lived  ·  TypeScript');
+    expect(svg).toContain('>2026  ● now<');
+    expect(svg).toContain('fill="#2f8a4e">Rising Star<');
+  });
+
+  it('numbers the moments on the axis and in the list below it, oldest first', () => {
+    const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [detailedYearFixture(2024)], [journeyYearFixture]);
+    // fixture: first contribution 2024-09-05 is within a week of the hero repo (2024-09-01), so only the hero remains
+    expect(svg).toContain('>first public repo · seuthootDev<');
+    expect(svg).toContain('class="moment-fade m0"');
+    expect(svg).not.toContain('MORE MOMENTS');
   });
 
   it('includes the report card with a star mark only on a positive column max', () => {
@@ -144,19 +182,6 @@ describe('renderDetailedSvg', () => {
       [journeyYearFixture, { ...journeyYearFixture, year: 2025 }]
     );
     expect(svg.indexOf('2024 Quiet Year')).toBeLessThan(svg.indexOf('2025 Quiet Year'));
-  });
-
-  it('positions the ANALYSIS divider at heroSectionHeight(momentsCount) + 26 - 16, not double-offset by an extra 90px', () => {
-    const years = [detailedYearFixture(2024)];
-    const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', years, [journeyYearFixture]);
-    const hero = selectHero(years);
-    const moments = selectMoreMoments(years, hero);
-    const expectedAnalysisLabelY = heroSectionHeight(moments.length, hero !== null) + 26;
-    const expectedDividerY = expectedAnalysisLabelY - 16;
-    const wrongDividerY = 90 + expectedDividerY; // the bug: an extra, spurious +90 baked in
-
-    expect(svg).toContain(`<line x1="28" y1="${expectedDividerY}" x2="812" y2="${expectedDividerY}" stroke="#ded3bd"/>`);
-    expect(svg).not.toContain(`<line x1="28" y1="${wrongDividerY}"`);
   });
 
   it('adds a report-card reading line naming the year/column with fewer highs, and one with more, when at least two years each hold a star', () => {
@@ -286,15 +311,58 @@ describe('renderDetailedSvg', () => {
     expect(svg).not.toContain('THE START');
   });
 
-  it('renders a small year-tick label for each window year on the chart x-axis (font-size 8 is unique to these ticks — distinct from the report card\'s year column)', () => {
+  it('labels the shared month axis with quarter ticks for every window year', () => {
     const svg = renderDetailedSvg(
       'seuthootDev',
       'Quiet Year',
       [detailedYearFixture(2024), detailedYearFixture(2025)],
       [journeyYearFixture, { ...journeyYearFixture, year: 2025 }]
     );
-    expect(svg).toContain('font-size="8" fill="#8a8175">2024<');
-    expect(svg).toContain('font-size="8" fill="#8a8175">2025<');
+    expect(svg.match(/font-size="9" fill="#a39a8b">Jan</g)).toHaveLength(2);
+    expect(svg.match(/font-size="9" fill="#a39a8b">Oct</g)).toHaveLength(2);
+  });
+
+  it('hatches months that have not happened yet instead of drawing them as zero', () => {
+    const year = { ...detailedYearFixture(2026), commitDayDates: ['2026-01-05', '2026-10-01'] };
+    const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [year], [{ ...journeyYearFixture, year: 2026 }], new Date('2026-10-15T00:00:00Z'));
+    expect(svg).toContain('fill="url(#notYet)"');
+    expect(svg).toContain('>not yet<');
+    // Jan..Oct only: the commit-day polyline stops at October
+    const commitLine = svg.match(/<polyline fill="none" stroke="#2f8a4e"[^>]*points="([^"]+)"/)?.[1] ?? '';
+    expect(commitLine.split(' ')).toHaveLength(10);
+  });
+
+  it('has no hatch once the window is over', () => {
+    const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [detailedYearFixture(2024)], [journeyYearFixture], new Date('2026-10-15T00:00:00Z'));
+    expect(svg).not.toContain('fill="url(#notYet)"');
+  });
+});
+
+describe('lastElapsedMonth', () => {
+  const years = [detailedYearFixture(2025), detailedYearFixture(2026)];
+  it('is the month containing now while the window is running', () => {
+    expect(lastElapsedMonth(years, new Date('2026-10-15T00:00:00Z'))).toBe(21);
+  });
+  it('is the last month once the window has ended, and -1 before it starts', () => {
+    expect(lastElapsedMonth(years, new Date('2027-02-01T00:00:00Z'))).toBe(23);
+    expect(lastElapsedMonth(years, new Date('2024-02-01T00:00:00Z'))).toBe(-1);
+  });
+});
+
+describe('REVIEWS · ISSUES row', () => {
+  it('stacks two reviews in the same month instead of drawing them on top of each other', () => {
+    const year: DetailedYearData = {
+      ...detailedYearFixture(2026),
+      reviewEvents: [
+        { repo: 'a/b', date: '2026-01-10T00:00:00Z' },
+        { repo: 'a/b', date: '2026-01-20T00:00:00Z' },
+      ],
+    };
+    const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [year], [{ ...journeyYearFixture, year: 2026 }]);
+    const reviewDots = [...svg.matchAll(/<circle cx="([\d.]+)" cy="([\d.]+)" r="4" fill="#2f6fce"\/>/g)];
+    expect(reviewDots).toHaveLength(2);
+    expect(reviewDots[0][1]).toBe(reviewDots[1][1]); // same month
+    expect(reviewDots[0][2]).not.toBe(reviewDots[1][2]); // different heights
   });
 });
 
@@ -314,19 +382,19 @@ describe('buildChartSpecs REPOS CREATED (regression: production shape has the SA
     }));
     const specs = buildChartSpecs(years);
     const reposCreatedSpec = specs.find((s) => s.label === 'REPOS CREATED')!;
-    const totalBucketed = reposCreatedSpec.values.reduce((a, b) => a + b, 0);
+    const totalBucketed = reposCreatedSpec.series[0].values.reduce((a, b) => a + b, 0);
     expect(totalBucketed).toBe(3); // distinct repos, not 3 repos * 3 years = 9
   });
 });
 
-describe('buildChartSpecs REVIEWS + ISSUES', () => {
+describe('buildChartSpecs REVIEWS · ISSUES', () => {
   it('plots review and issue events at their correct month index instead of leaving the chart empty', () => {
     const years: DetailedYearData[] = [
       { ...detailedYearFixture(2024), reviewEvents: [{ repo: 'a/lib', date: '2024-03-15T00:00:00Z' }] },
       { ...detailedYearFixture(2025), issueEvents: [{ repo: 'b/proj', date: '2025-06-01T00:00:00Z' }] },
     ];
     const specs = buildChartSpecs(years);
-    const spec = specs.find((s) => s.label === 'REVIEWS + ISSUES')!;
+    const spec = specs.find((s) => s.label === 'REVIEWS · ISSUES')!;
     expect(spec.kind).toBe('events');
     expect(spec.events).toEqual([
       { index: 2, type: 'review' }, // March 2024
@@ -336,18 +404,18 @@ describe('buildChartSpecs REVIEWS + ISSUES', () => {
 });
 
 describe('fade-in classes', () => {
-  it('gives the ANALYSIS divider, each chart row, the report card, and year notes their own fade group', () => {
+  it('gives the year headers, each chart row, the report card, and year notes their own fade group', () => {
     const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [detailedYearFixture(2024)], [journeyYearFixture]);
     expect(svg).toContain('class="divider-fade"');
-    expect(svg).toContain('class="chart-fade row0"');
-    expect(svg).toContain('class="chart-fade row1"');
-    expect(svg).toContain('class="chart-fade row2"');
-    expect(svg).toContain('class="chart-fade row3"'); // 7 charts -> solo 4th row
+    for (let r = 0; r < 5; r++) {
+      expect(svg).toContain(`class="chart-fade row${r}"`);
+      expect(svg).toContain(`.chart-fade.row${r} { animation-delay`);
+    }
     expect(svg).toContain('class="reportcard-fade"');
     expect(svg).toContain('class="notes-fade"');
   });
 
-  it('gives every one of up to 8 More Moments its own fade-delay class', () => {
+  it('gives every one of up to 9 timeline moments (hero + 8 more) its own fade-delay class', () => {
     const year: DetailedYearData = {
       ...detailedYearFixture(2026),
       externalMergedPRs: [{ repo: 'x/ext-merged', date: '2026-01-01T00:00:00Z' }],
@@ -368,7 +436,7 @@ describe('fade-in classes', () => {
       commitDayDates: ['2026-04-01', '2026-04-02'],
     };
     const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [year], [{ ...journeyYearFixture, year: 2026 }]);
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 9; i++) {
       expect(svg).toContain(`class="moment-fade m${i}"`);
     }
   });
@@ -410,7 +478,8 @@ describe('chart peak-value labels', () => {
       ],
     };
     const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [year], [journeyYearFixture]);
-    const starLabelMatches = svg.match(/fill="#c9971f">2</g);
+    // the cumulative stars row labels only its latest value
+    const starLabelMatches = svg.match(/fill="#b8860b">2</g);
     expect(starLabelMatches?.length).toBe(1);
   });
 
@@ -427,21 +496,22 @@ describe('chart peak-value labels', () => {
   });
 });
 
-describe('REVIEWS + ISSUES rendering', () => {
-  it('draws a circle for each review and a square for each issue, and captions real counts', () => {
+describe('REVIEWS · ISSUES rendering', () => {
+  it('draws a circle for each review and a square for each issue, and shows real counts', () => {
     const year: DetailedYearData = {
       ...detailedYearFixture(2024),
       reviewEvents: [{ repo: 'a/lib', date: '2024-03-01T00:00:00Z' }],
       issueEvents: [{ repo: 'c/proj', date: '2024-05-01T00:00:00Z' }],
     };
     const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [year], [journeyYearFixture]);
-    expect(svg).toContain('fill="#3a7fd6"'); // review circle color
-    expect(svg).toContain('fill="#d1453d"'); // issue square color
-    expect(svg).toContain('1 reviews, 1 issues across the window.');
+    expect(svg).toMatch(/<circle cx="[\d.]+" cy="[\d.]+" r="4" fill="#2f6fce"\/>/); // review circle
+    expect(svg).toMatch(/<rect x="[\d.]+" y="[\d.]+" width="8" height="8" fill="#d1453d"\/>/); // issue square
+    expect(svg).toContain('>1 · 1<');
   });
 
-  it('renders no dots and a zero caption when there are no review/issue events, instead of crashing', () => {
+  it('renders no dots and zero counts when there are no review/issue events, instead of crashing', () => {
     const svg = renderDetailedSvg('seuthootDev', 'Quiet Year', [detailedYearFixture(2024)], [journeyYearFixture]);
-    expect(svg).toContain('0 reviews, 0 issues across the window.');
+    expect(svg).toContain('>0 · 0<');
+    expect(svg).not.toMatch(/r="4" fill="#2f6fce"/);
   });
 });

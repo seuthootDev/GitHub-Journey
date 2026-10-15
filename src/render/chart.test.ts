@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildPolylinePoints, buildBars, chartGridSlots, pointAt } from './chart';
+import { buildPolylinePoints, buildBars, pointAt } from './chart';
 
 describe('pointAt', () => {
   it('returns the same coordinate buildPolylinePoints would place at that index', () => {
@@ -36,20 +36,5 @@ describe('buildBars', () => {
       { x: -4, y: 25, height: 25 },
       { x: 96, y: 0, height: 50 },
     ]);
-  });
-});
-
-describe('chartGridSlots', () => {
-  it('pairs charts two per row', () => {
-    const slots = chartGridSlots(4, { marginX: 28, contentWidth: 784, colGap: 32, rowHeight: 132, startY: 470 });
-    expect(slots[0]).toMatchObject({ x: 28, width: 376, y: 470 });
-    expect(slots[1]).toMatchObject({ x: 436, width: 376, y: 470 });
-    expect(slots[2]).toMatchObject({ x: 28, width: 376, y: 602 });
-    expect(slots[3]).toMatchObject({ x: 436, width: 376, y: 602 });
-  });
-
-  it('gives the odd chart out a full-width solo row', () => {
-    const slots = chartGridSlots(3, { marginX: 28, contentWidth: 784, colGap: 32, rowHeight: 132, startY: 470 });
-    expect(slots[2]).toMatchObject({ x: 28, width: 784, y: 602 });
   });
 });
