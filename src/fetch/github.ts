@@ -14,6 +14,7 @@ export interface OctokitLike {
       issuesAndPullRequests(params: {
         q: string;
         per_page?: number;
+        page?: number;
       }): Promise<{
         data: {
           total_count: number;
@@ -56,6 +57,33 @@ function mergedEvents(items: Array<{ repository_url: string; pull_request?: { me
       Boolean(item.pull_request?.merged_at)
     )
     .map((item) => ({ repo: repoNameFromUrl(item.repository_url), date: item.pull_request.merged_at }));
+}
+
+type SearchItem = NonNullable<
+  Awaited<ReturnType<OctokitLike['rest']['search']['issuesAndPullRequests']>>['data']['items']
+>[number];
+
+const SEARCH_PAGE_SIZE = 100;
+// GitHub search never returns more than the first 1000 results, however many pages are asked for.
+const SEARCH_RESULT_LIMIT = 1000;
+
+/**
+ * Every result of a search, across pages. `total_count` stays the true count from GitHub;
+ * `items` holds up to the first 1000 of them.
+ */
+async function searchAll(octokit: OctokitLike, q: string): Promise<{ total_count: number; items: SearchItem[] }> {
+  const { data: first } = await octokit.rest.search.issuesAndPullRequests({ q, per_page: SEARCH_PAGE_SIZE, page: 1 });
+  const items = [...(first.items ?? [])];
+  const reachable = Math.min(first.total_count, SEARCH_RESULT_LIMIT);
+  // a page shorter than SEARCH_PAGE_SIZE is the last one, whatever total_count says
+  let lastPageSize = items.length;
+  for (let page = 2; lastPageSize === SEARCH_PAGE_SIZE && items.length < reachable; page++) {
+    const { data } = await octokit.rest.search.issuesAndPullRequests({ q, per_page: SEARCH_PAGE_SIZE, page });
+    const pageItems = data.items ?? [];
+    items.push(...pageItems);
+    lastPageSize = pageItems.length;
+  }
+  return { total_count: first.total_count, items: items.slice(0, SEARCH_RESULT_LIMIT) };
 }
 
 const CONTRIBUTIONS_QUERY = `
@@ -103,31 +131,13 @@ export async function fetchRawYear(octokit: OctokitLike, username: string, year:
     .filter((c) => !c.repository.isFork)
     .map((c) => c.repository.name);
 
-  const { data: ownPRs } = await octokit.rest.search.issuesAndPullRequests({
-    q: `author:${username} type:pr created:${dateRange} user:${username}`,
-    per_page: 100,
-  });
-  const { data: externalPRs } = await octokit.rest.search.issuesAndPullRequests({
-    q: `author:${username} type:pr created:${dateRange} -user:${username}`,
-    per_page: 100,
-  });
-  const { data: reviews } = await octokit.rest.search.issuesAndPullRequests({
-    q: `reviewed-by:${username} type:pr created:${dateRange}`,
-    per_page: 100,
-  });
-  const { data: issues } = await octokit.rest.search.issuesAndPullRequests({
-    q: `is:issue author:${username} created:${dateRange}`,
-    per_page: 100,
-  });
-  const { data: ownMerged } = await octokit.rest.search.issuesAndPullRequests({
-    q: `author:${username} type:pr is:merged merged:${dateRange} user:${username}`,
-    per_page: 100,
-  });
-  const { data: externalMerged } = await octokit.rest.search.issuesAndPullRequests({
-    q: `author:${username} type:pr is:merged merged:${dateRange} -user:${username}`,
-    per_page: 100,
-  });
-  const externalRepoNames = new Set((externalPRs.items ?? []).map((item) => item.repository_url));
+  const ownPRs = await searchAll(octokit, `author:${username} type:pr created:${dateRange} user:${username}`);
+  const externalPRs = await searchAll(octokit, `author:${username} type:pr created:${dateRange} -user:${username}`);
+  const reviews = await searchAll(octokit, `reviewed-by:${username} type:pr created:${dateRange}`);
+  const issues = await searchAll(octokit, `is:issue author:${username} created:${dateRange}`);
+  const ownMerged = await searchAll(octokit, `author:${username} type:pr is:merged merged:${dateRange} user:${username}`);
+  const externalMerged = await searchAll(octokit, `author:${username} type:pr is:merged merged:${dateRange} -user:${username}`);
+  const externalRepoNames = new Set(externalPRs.items.map((item) => item.repository_url));
 
   let starsGainedThisYear = 0;
   const starEvents: Array<{ repo: string; starredAt: string }> = [];
@@ -166,10 +176,10 @@ export async function fetchRawYear(octokit: OctokitLike, username: string, year:
     externalMergedPRs: mergedEvents(externalMerged.items),
     ownMergedCount: ownMerged.total_count,
     externalMergedCount: externalMerged.total_count,
-    ownPROpenedEvents: (ownPRs.items ?? []).map((item) => ({ repo: repoNameFromUrl(item.repository_url), date: item.created_at })),
-    externalPROpenedEvents: (externalPRs.items ?? []).map((item) => ({ repo: repoNameFromUrl(item.repository_url), date: item.created_at })),
+    ownPROpenedEvents: ownPRs.items.map((item) => ({ repo: repoNameFromUrl(item.repository_url), date: item.created_at })),
+    externalPROpenedEvents: externalPRs.items.map((item) => ({ repo: repoNameFromUrl(item.repository_url), date: item.created_at })),
     starEvents,
-    reviewEvents: (reviews.items ?? []).map((item) => ({ repo: repoNameFromUrl(item.repository_url), date: item.created_at })),
-    issueEvents: (issues.items ?? []).map((item) => ({ repo: repoNameFromUrl(item.repository_url), date: item.created_at })),
+    reviewEvents: reviews.items.map((item) => ({ repo: repoNameFromUrl(item.repository_url), date: item.created_at })),
+    issueEvents: issues.items.map((item) => ({ repo: repoNameFromUrl(item.repository_url), date: item.created_at })),
   };
 }

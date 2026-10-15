@@ -101,6 +101,79 @@ describe('fetchRawYear', () => {
     expect(calls).toContain('is:issue author:seuthootDev created:2024-01-01..2024-12-31');
   });
 
+  describe('search results past the first page (regression: monthly PR events stopped at 100)', () => {
+    // 150 external PRs: page 1 holds the 100 most relevant (June), page 2 the other 50
+    // (January, in a different repo) — the shape GitHub returned for a 162-PR year.
+    const pr = (repo: string, date: string) => ({
+      repository_url: `https://api.github.com/repos/${repo}`,
+      created_at: date,
+      pull_request: { merged_at: date },
+    });
+    const pages: Record<number, ReturnType<typeof pr>[]> = {
+      1: Array.from({ length: 100 }, () => pr('org/june-repo', '2026-06-10T00:00:00Z')),
+      2: Array.from({ length: 50 }, () => pr('org/january-repo', '2026-01-02T00:00:00Z')),
+    };
+    function pagedOctokit() {
+      return makeOctokit({
+        rest: {
+          ...makeOctokit().rest,
+          search: {
+            issuesAndPullRequests: vi.fn((params: { q: string; page?: number }) => {
+              if (params.q.includes('-user:')) {
+                return Promise.resolve({ data: { total_count: 150, items: pages[params.page ?? 1] ?? [] } });
+              }
+              return Promise.resolve({ data: { total_count: 0, items: [] } });
+            }),
+          },
+        },
+      });
+    }
+
+    it('collects every page of opened PRs, not just the first 100', async () => {
+      const result = await fetchRawYear(pagedOctokit() as any, 'seuthootDev', 2026);
+      expect(result.externalPRCount).toBe(150);
+      expect(result.externalPROpenedEvents).toHaveLength(150);
+      expect(result.externalPROpenedEvents.some((e) => e.date.startsWith('2026-01'))).toBe(true);
+    });
+
+    it('collects every page of merged PRs, so the earliest merge is the real one', async () => {
+      const result = await fetchRawYear(pagedOctokit() as any, 'seuthootDev', 2026);
+      expect(result.externalMergedPRs).toHaveLength(150);
+      const earliest = result.externalMergedPRs.map((e) => e.date).sort()[0];
+      expect(earliest).toBe('2026-01-02T00:00:00Z');
+    });
+
+    it('counts external repos across every page', async () => {
+      const result = await fetchRawYear(pagedOctokit() as any, 'seuthootDev', 2026);
+      expect(result.externalRepoCount).toBe(2);
+    });
+
+    it('stops at the 1000 results GitHub search will ever return', async () => {
+      const octokit = makeOctokit({
+        rest: {
+          ...makeOctokit().rest,
+          search: {
+            issuesAndPullRequests: vi.fn((params: { q: string; page?: number }) =>
+              Promise.resolve({
+                data: {
+                  total_count: params.q.includes('-user:') ? 5000 : 0,
+                  items: params.q.includes('-user:') ? Array.from({ length: 100 }, () => pr('org/x', '2026-03-01T00:00:00Z')) : [],
+                },
+              })
+            ),
+          },
+        },
+      });
+      const result = await fetchRawYear(octokit as any, 'seuthootDev', 2026);
+      expect(result.externalPRCount).toBe(5000);
+      expect(result.externalPROpenedEvents).toHaveLength(1000);
+      const pagesAsked = octokit.rest.search.issuesAndPullRequests.mock.calls
+        .filter((c: any[]) => c[0].q.startsWith('author:seuthootDev type:pr created:') && c[0].q.includes('-user:'))
+        .map((c: any[]) => c[0].page);
+      expect(pagesAsked).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    });
+  });
+
   it('captures review and issue events with repo and creation date', async () => {
     const octokit = makeOctokit({
       rest: {
