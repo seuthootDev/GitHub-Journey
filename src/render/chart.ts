@@ -43,34 +43,3 @@ export function buildBars(
     };
   });
 }
-
-export interface GridSlot {
-  x: number;
-  width: number;
-  y: number;
-}
-
-export function chartGridSlots(
-  count: number,
-  opts: { marginX: number; contentWidth: number; colGap: number; rowHeight: number; startY: number }
-): GridSlot[] {
-  const colWidth = (opts.contentWidth - opts.colGap) / 2;
-  const rightX = opts.marginX + colWidth + opts.colGap;
-  const slots: GridSlot[] = [];
-  let row = 0;
-  for (let i = 0; i < count; i++) {
-    const isLastOdd = count % 2 === 1 && i === count - 1;
-    if (isLastOdd) {
-      slots.push({ x: opts.marginX, width: opts.contentWidth, y: opts.startY + row * opts.rowHeight });
-      break;
-    }
-    const isLeft = i % 2 === 0;
-    slots.push({
-      x: isLeft ? opts.marginX : rightX,
-      width: colWidth,
-      y: opts.startY + row * opts.rowHeight,
-    });
-    if (!isLeft) row++;
-  }
-  return slots;
-}

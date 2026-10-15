@@ -2,7 +2,7 @@ import type { JourneyYear, Reason, YearlyMetrics } from '../types';
 import { dominantLanguage } from '../metrics/language';
 import { summarizeJourney } from '../summarize';
 
-function renderReason(reason: Reason): string {
+export function renderReason(reason: Reason): string {
   return reason.kind === 'language' ? `${reason.emoji} ${reason.label}` : `${reason.icon} ${reason.text}`;
 }
 

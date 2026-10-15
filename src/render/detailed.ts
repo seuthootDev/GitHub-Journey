@@ -1,47 +1,50 @@
-import { chartGridSlots, buildPolylinePoints, buildBars, pointAt, type PlotArea } from './chart';
-import { bucketByMonth, bucketCumulativeByMonth, monthLabels, monthIndex } from '../detailed/monthly';
+import { buildPolylinePoints, buildBars, pointAt, type PlotArea } from './chart';
+import { bucketByMonth, bucketCumulativeByMonth, monthIndex } from '../detailed/monthly';
 import { buildReportCard, type ReportCardRow } from '../detailed/reportcard';
 import { buildYearNote } from '../detailed/notes';
 import { selectHero, selectMoreMoments, type HeroMoment, type Moment } from '../detailed/moments';
 import { renderCumulativeSentence } from '../detailed/sentence';
 import { windowTotals } from '../detailed';
+import { dominantLanguage } from '../metrics/language';
+import { renderReason } from './index';
 import type { DetailedYearData } from '../detailed/types';
 import type { JourneyYear } from '../types';
 
 const INK = '#1c1917';
 const INK_SECONDARY = '#57534e';
 const INK_LABEL = '#78716c';
-const INK_TERTIARY = '#8a8175';
+const INK_FAINT = '#a39a8b';
+const RULE = '#e6dcc8';
+const YEAR_BAND = '#f3e9d6';
+const PAPER = '#faf3e6';
+const CURRENT = '#2f8a4e';
+const MONO = 'ui-monospace, Consolas, monospace';
 
 function escapeXml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
+
+function fadeDelays(selector: string, count: number, start: number, step: number): string {
+  return Array.from({ length: count }, (_, i) => `  .${selector}${i} { animation-delay: ${(start + i * step).toFixed(2)}s; }`).join('\n');
+}
+
+const MAX_TIMELINE_MOMENTS = 9; // hero + up to 8 more moments
+const MAX_CHART_ROWS = 5;
 
 export const CARD_STYLE = `
   .hero-fade, .moment-fade, .polaroid, .divider-fade, .chart-fade, .reportcard-fade, .notes-fade {
     opacity: 0; animation: memFadeIn 0.9s ease-out forwards;
   }
   .polaroid { animation-delay: 0s; animation-duration: 1.1s; }
-  .hero-fade.d1 { animation-delay: .35s; }
-  .hero-fade.d2 { animation-delay: .6s; }
-  .hero-fade.d3 { animation-delay: .95s; }
-  .hero-fade.d5 { animation-delay: 1.3s; }
-  .hero-fade.d6 { animation-delay: 1.55s; }
-  .moment-fade.m0 { animation-delay: 1.7s; }
-  .moment-fade.m1 { animation-delay: 1.85s; }
-  .moment-fade.m2 { animation-delay: 2.0s; }
-  .moment-fade.m3 { animation-delay: 2.15s; }
-  .moment-fade.m4 { animation-delay: 2.3s; }
-  .moment-fade.m5 { animation-delay: 2.45s; }
-  .moment-fade.m6 { animation-delay: 2.6s; }
-  .moment-fade.m7 { animation-delay: 2.75s; }
-  .divider-fade { animation-delay: 2.9s; }
-  .chart-fade.row0 { animation-delay: 3.05s; }
-  .chart-fade.row1 { animation-delay: 3.2s; }
-  .chart-fade.row2 { animation-delay: 3.35s; }
-  .chart-fade.row3 { animation-delay: 3.5s; }
-  .reportcard-fade { animation-delay: 3.7s; }
-  .notes-fade { animation-delay: 3.9s; }
+  .hero-fade.d1 { animation-delay: .3s; }
+  .hero-fade.d2 { animation-delay: .5s; }
+  .hero-fade.d3 { animation-delay: .75s; }
+  .hero-fade.d4 { animation-delay: 1s; }
+  .divider-fade { animation-delay: 1.3s; }
+${fadeDelays('chart-fade.row', MAX_CHART_ROWS, 1.5, 0.15)}
+${fadeDelays('moment-fade.m', MAX_TIMELINE_MOMENTS, 2.4, 0.1)}
+  .reportcard-fade { animation-delay: 3.4s; }
+  .notes-fade { animation-delay: 3.6s; }
   @keyframes memFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
   @media (prefers-reduced-motion: reduce) {
     .hero-fade, .moment-fade, .polaroid, .divider-fade, .chart-fade, .reportcard-fade, .notes-fade {
@@ -52,86 +55,107 @@ export const CARD_STYLE = `
 
 function renderPolaroid(): string {
   return `
-  <g class="polaroid" filter="url(#polaroidShadow)" transform="rotate(-4 87 150)">
-    <rect x="28" y="80" width="118" height="140" rx="3" fill="#fffdf8" stroke="#e8ddc8"/>
-    <rect x="36" y="88" width="102" height="98" fill="url(#photoSky)"/>
-    <circle cx="118" cy="100" r="10" fill="#f6cf7e" opacity="0.8"/>
-    <ellipse cx="87" cy="186" rx="40" ry="8" fill="#8b6f4e"/>
-    <path d="M87,186 C87,160 78,150 87,128" fill="none" stroke="#6b9b5e" stroke-width="3" stroke-linecap="round"/>
-    <path d="M87,150 C74,146 68,136 70,126" fill="none" stroke="#6b9b5e" stroke-width="3" stroke-linecap="round"/>
-    <path d="M87,138 C98,133 103,124 101,114" fill="none" stroke="#6b9b5e" stroke-width="3" stroke-linecap="round"/>
-    <text x="87" y="210" text-anchor="middle" font-family="'Caveat', cursive" font-size="17" fill="${INK_SECONDARY}">the start</text>
+  <g class="polaroid" filter="url(#polaroidShadow)" transform="rotate(-4 87 98)">
+    <rect x="28" y="28" width="118" height="140" rx="3" fill="#fffdf8" stroke="#e8ddc8"/>
+    <rect x="36" y="36" width="102" height="98" fill="url(#photoSky)"/>
+    <circle cx="118" cy="48" r="10" fill="#f6cf7e" opacity="0.8"/>
+    <ellipse cx="87" cy="134" rx="40" ry="8" fill="#8b6f4e"/>
+    <path d="M87,134 C87,108 78,98 87,76" fill="none" stroke="#6b9b5e" stroke-width="3" stroke-linecap="round"/>
+    <path d="M87,98 C74,94 68,84 70,74" fill="none" stroke="#6b9b5e" stroke-width="3" stroke-linecap="round"/>
+    <path d="M87,86 C98,81 103,72 101,62" fill="none" stroke="#6b9b5e" stroke-width="3" stroke-linecap="round"/>
+    <text x="87" y="158" text-anchor="middle" font-family="'Caveat', cursive" font-size="17" fill="${INK_SECONDARY}">the start</text>
   </g>
-  <rect x="60" y="70" width="40" height="15" rx="1" fill="#d9a86c" opacity="0.65" transform="rotate(6 80 77)"/>`;
+  <rect x="60" y="18" width="40" height="15" rx="1" fill="#d9a86c" opacity="0.65" transform="rotate(6 80 25)"/>`;
 }
 
-export function renderHeroSection(hero: HeroMoment | null, moments: Moment[], cumulativeLines: string[]): string {
+export function yearSpan(years: Array<{ year: number }>): string {
+  if (years.length === 0) return '';
+  const first = years[0].year;
+  const last = years[years.length - 1].year;
+  return first === last ? String(first) : `${first} → ${last}`;
+}
+
+/**
+ * Card header: who, the one-line arc, and the cumulative sentence. The polaroid and the
+ * "first public repo" line only appear when there is a hero repo to anchor them.
+ */
+export function renderHeroSection(
+  username: string,
+  arcLine: string,
+  span: string,
+  hero: HeroMoment | null,
+  cumulativeLines: string[]
+): { svg: string; height: number } {
+  const x = hero ? 172 : MARGIN;
+  const eyebrow = span ? `FULL JOURNEY · ${span}` : 'FULL JOURNEY';
   const parts: string[] = [];
-  // With no hero, the polaroid/"THE START"/repo-name block is skipped entirely, so the
-  // cumulative sentence moves up to roughly where "THE START" label used to start.
-  const cumulativeStartY = hero ? 252 : 112;
-
-  if (hero) {
-    parts.push(renderPolaroid());
-    parts.push(`
-  <g class="hero-fade d1"><text x="172" y="112" font-size="11" font-weight="600" fill="${INK_LABEL}" letter-spacing="1">THE START</text></g>
-  <g class="hero-fade d2"><text x="172" y="150" font-size="30" font-weight="700" fill="${INK}">${escapeXml(hero.name)}</text></g>
-  <g class="hero-fade d3"><text x="172" y="178" font-size="14" fill="${INK_SECONDARY}">first public repo, ${escapeXml(hero.date)} — the floor this whole story climbs from.</text></g>`);
-  }
-
+  if (hero) parts.push(renderPolaroid());
   parts.push(`
-  <g class="hero-fade d5">`);
+  <g class="hero-fade d1">
+    <text x="${x}" y="44" font-family="${MONO}" font-size="10.5" fill="${INK_LABEL}" letter-spacing="1.2">${escapeXml(eyebrow)}</text>
+    <text x="${x}" y="80" font-size="30" font-weight="700" fill="${INK}">${escapeXml(username)}</text>
+  </g>
+  <g class="hero-fade d2"><text x="${x}" y="106" font-size="15" fill="${INK_SECONDARY}">${escapeXml(arcLine)}</text></g>
+  <g class="hero-fade d3">`);
   cumulativeLines.forEach((line, i) => {
-    parts.push(`    <text x="28" y="${cumulativeStartY + i * 26}" font-size="19" fill="${INK}">${escapeXml(line)}</text>`);
+    parts.push(`    <text x="${x}" y="${142 + i * 20}" font-size="14" fill="${INK}">${escapeXml(line)}</text>`);
   });
   parts.push(`  </g>`);
-
-  const lastCumulativeY = cumulativeStartY + (cumulativeLines.length - 1) * 26;
-  if (moments.length > 0) {
-    const moreMomentsLabelY = lastCumulativeY + 34;
-    const momentsStartY = moreMomentsLabelY + 24;
-    parts.push(`
-  <g class="hero-fade d6"><text x="28" y="${moreMomentsLabelY}" font-size="12" font-weight="600" fill="${INK_LABEL}" letter-spacing=".5">MORE MOMENTS</text></g>
-  <g font-size="15" fill="${INK}">`);
-    moments.forEach((m, i) => {
-      const y = momentsStartY + i * 24;
-      parts.push(
-        `    <text class="moment-fade m${i}" x="28" y="${y}"><tspan fill="${INK_TERTIARY}" font-size="14">${escapeXml(m.date)}</tspan>   ${escapeXml(
-          m.name
-        )} · ${escapeXml(m.why)}</text>`
-      );
-    });
-    parts.push(`  </g>`);
+  const afterLines = 142 + cumulativeLines.length * 20;
+  if (hero) {
+    parts.push(
+      `  <g class="hero-fade d4"><text x="${x}" y="${afterLines}" font-size="12" fill="${INK_LABEL}">first public repo, ${escapeXml(hero.date)} — the floor this whole story climbs from.</text></g>`
+    );
   }
-
-  return parts.join('\n');
+  return { svg: parts.join('\n'), height: hero ? Math.max(200, afterLines + 18) : afterLines };
 }
 
-export function heroSectionHeight(momentsCount: number, hasHero: boolean): number {
-  // y of the last MORE MOMENTS line (or the cumulative sentence if there are none) + closing padding
-  const cumulativeStartY = hasHero ? 252 : 112;
-  const lastCumulativeY = cumulativeStartY + 26; // cumulativeLines is always 2 lines
-  if (momentsCount === 0) return lastCumulativeY + 20;
-  const momentsStartY = lastCumulativeY + 34 + 24;
-  return momentsStartY + (momentsCount - 1) * 24 + 20;
+export interface TimelineMoment {
+  /** What the list shows as the date: a day, or a month for month-level moments. */
+  date: string;
+  label: string;
+  /** Full ISO date, used for ordering and for placing the dot on the month axis. */
+  at: string;
+}
+
+/**
+ * Hero + more moments as one chronological list. Moments whose name is just their own
+ * date (first contribution day, busiest month) show that date once instead of twice.
+ */
+export function timelineMoments(hero: HeroMoment | null, moments: Moment[]): TimelineMoment[] {
+  const items: TimelineMoment[] = moments.map((m) =>
+    m.date.startsWith(m.name)
+      ? { date: m.name, label: m.why, at: m.date }
+      : { date: m.date, label: `${m.why} · ${m.name}`, at: m.date }
+  );
+  if (hero) items.push({ date: hero.date, label: `first public repo · ${hero.name}`, at: hero.date });
+  return items.sort((a, b) => a.at.localeCompare(b.at));
 }
 
 const MARGIN = 28;
 const CARD_WIDTH = 840;
 const CONTENT_WIDTH = CARD_WIDTH - MARGIN * 2;
-const ROW_HEIGHT = 132;
-const PLOT_HEIGHT = 70;
-const PLOT_INSET = 10;
+const PLOT_LEFT = 140;
+const PLOT_RIGHT = CARD_WIDTH - MARGIN;
+const ROW_GAP = 22;
 
-interface ChartSpec {
-  label: string;
+export interface ChartSeries {
+  name: string;
   color: string;
   values: number[];
+}
+
+export interface ChartSpec {
+  label: string;
+  total: string;
+  unit: string;
+  kind: 'area' | 'lines' | 'bars' | 'step' | 'events';
+  series: ChartSeries[];
   max: number;
-  caption: string;
-  kind: 'line' | 'bars' | 'events';
   events?: Array<{ index: number; type: 'review' | 'issue' }>;
 }
+
+const ROW_HEIGHT: Record<ChartSpec['kind'], number> = { area: 54, lines: 54, bars: 44, step: 44, events: 26 };
 
 function topPeakIndices(values: number[], count: number): number[] {
   return values
@@ -146,75 +170,17 @@ function topPeakIndices(values: number[], count: number): number[] {
     .sort((a, b) => a - b);
 }
 
-function renderPeakLabels(values: number[], plot: PlotArea, max: number, color: string, count: number): string {
-  return topPeakIndices(values, count)
+function renderPeakLabel(values: number[], plot: PlotArea, max: number, color: string, dx = 0, anchor = 'middle'): string {
+  return topPeakIndices(values, 1)
     .map((i) => {
       const { x, y } = pointAt(values, i, plot, max);
-      return `<text x="${x.toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="8" font-family="ui-monospace, Consolas, monospace" fill="${color}">${values[i]}</text>`;
+      return `<text x="${(x + dx).toFixed(1)}" y="${(y - 5).toFixed(1)}" text-anchor="${anchor}" font-size="10" font-weight="700" font-family="${MONO}" fill="${color}">${values[i]}</text>`;
     })
     .join('');
-}
-
-function renderChart(
-  spec: ChartSpec,
-  slot: { x: number; width: number; y: number },
-  yearTicks: Array<{ year: number; index: number }>,
-  totalMonths: number
-): string {
-  const plot: PlotArea = {
-    x: slot.x + PLOT_INSET,
-    y: slot.y + 22,
-    width: slot.width - PLOT_INSET,
-    height: PLOT_HEIGHT,
-  };
-  const plotBottom = plot.y + plot.height;
-  let body: string;
-  if (spec.kind === 'bars') {
-    const bars = buildBars(spec.values, plot, spec.max, 4.8);
-    body =
-      bars.map((b) => `<rect x="${b.x.toFixed(1)}" y="${b.y.toFixed(1)}" width="4.8" height="${b.height.toFixed(1)}" rx="1" fill="${spec.color}"/>`).join('') +
-      renderPeakLabels(spec.values, plot, spec.max, spec.color, 2);
-  } else if (spec.kind === 'events') {
-    const stepX = totalMonths <= 1 ? 0 : plot.width / (totalMonths - 1);
-    const reviewY = plot.y + plot.height * 0.35;
-    const issueY = plot.y + plot.height * 0.75;
-    body = (spec.events ?? [])
-      .map((e) => {
-        const x = plot.x + e.index * stepX;
-        if (e.type === 'review') {
-          return `<circle cx="${x.toFixed(1)}" cy="${reviewY.toFixed(1)}" r="4" fill="#3a7fd6"/>`;
-        }
-        return `<rect x="${(x - 4).toFixed(1)}" y="${(issueY - 4).toFixed(1)}" width="8" height="8" fill="#d1453d"/>`;
-      })
-      .join('');
-  } else {
-    body =
-      `<polyline fill="none" stroke="${spec.color}" stroke-width="2" points="${buildPolylinePoints(spec.values, plot, spec.max)}"/>` +
-      renderPeakLabels(spec.values, plot, spec.max, spec.color, 3);
-  }
-  const tickStepX = totalMonths <= 1 ? 0 : plot.width / (totalMonths - 1);
-  const yearTickLabels = yearTicks
-    .map(({ year, index }) => {
-      const x = plot.x + index * tickStepX;
-      return `<text x="${x.toFixed(1)}" y="${(plotBottom + 11).toFixed(1)}" font-size="8" fill="${INK_TERTIARY}">${year}</text>`;
-    })
-    .join('');
-  const axisMaxLabel =
-    spec.kind === 'events'
-      ? ''
-      : `<text x="${plot.x - 2}" y="${plot.y + 4}" text-anchor="end" font-size="9" font-family="ui-monospace, Consolas, monospace" fill="#a39a8b">${Math.round(spec.max)}</text>`;
-  return `
-  <text x="${slot.x}" y="${slot.y}" font-size="11" font-weight="600" fill="${INK_LABEL}">${escapeXml(spec.label)}</text>
-  <line x1="${plot.x}" y1="${plotBottom}" x2="${plot.x + plot.width}" y2="${plotBottom}" stroke="#ded3bd"/>
-  ${axisMaxLabel}
-  ${body}
-  ${yearTickLabels}
-  <text x="${slot.x}" y="${plotBottom + 30}" font-size="10" fill="${INK_SECONDARY}">${escapeXml(spec.caption)}</text>`;
 }
 
 export function buildChartSpecs(years: DetailedYearData[]): ChartSpec[] {
-  const contributions = bucketByMonth(years, (y) => y.commitDayDates); // proxy: commit-day dates stand in for "contributions" volume per month
-  const commitDays = contributions; // same source today; kept separate per spec's two distinct charts
+  const commitDays = bucketByMonth(years, (y) => y.commitDayDates);
   const ownOpened = bucketByMonth(years, (y) => y.ownPROpenedEvents.map((e) => e.date));
   const extOpened = bucketByMonth(years, (y) => y.externalPROpenedEvents.map((e) => e.date));
   const ownMerged = bucketByMonth(years, (y) => y.ownMergedPRs.map((e) => e.date));
@@ -223,13 +189,10 @@ export function buildChartSpecs(years: DetailedYearData[]): ChartSpec[] {
     y.repos.filter((r) => new Date(r.createdAt).getUTCFullYear() === y.year).map((r) => r.createdAt)
   );
   const starsCumulative = bucketCumulativeByMonth(years, (y) => y.starEvents.map((e) => e.starredAt));
+  const opened = ownOpened.map((v, i) => v + extOpened[i]);
+  const merged = ownMerged.map((v, i) => v + extMerged[i]);
 
-  const totalOwnPRs = years.reduce((s, y) => s + y.metrics.ownPRs, 0);
-  const totalExtPRs = years.reduce((s, y) => s + y.metrics.externalPRs, 0);
-  const totalOwnMerged = years.reduce((s, y) => s + y.ownMergedCount, 0);
-  const totalExtMerged = years.reduce((s, y) => s + y.externalMergedCount, 0);
-  const totalStars = years.reduce((s, y) => s + y.metrics.starsGained, 0);
-  const totalDays = years.reduce((s, y) => s + y.metrics.commitDays, 0);
+  const totals = windowTotals(years);
   const totalReviews = years.reduce((s, y) => s + y.reviewEvents.length, 0);
   const totalIssues = years.reduce((s, y) => s + y.issueEvents.length, 0);
 
@@ -244,90 +207,272 @@ export function buildChartSpecs(years: DetailedYearData[]): ChartSpec[] {
 
   return [
     {
-      label: 'CONTRIBUTIONS',
-      color: '#2f8a4e',
-      values: contributions,
-      max: Math.max(1, ...contributions),
-      caption: `${totalDays} commit days across the window.`,
-      kind: 'line',
-    },
-    {
       label: 'COMMIT DAYS',
-      color: '#2f6fce',
-      values: commitDays,
+      total: String(totals.commitDays),
+      unit: 'days active',
+      kind: 'area',
+      series: [{ name: 'commit days', color: '#2f8a4e', values: commitDays }],
       max: Math.max(1, ...commitDays),
-      caption: years.map((y) => y.metrics.commitDays).join(' → ') + ' days/year.',
-      kind: 'line',
     },
     {
       label: 'PULL REQUESTS',
-      color: '#2f6fce',
-      values: ownOpened.map((v, i) => v + extOpened[i]),
-      max: Math.max(1, ...ownOpened.map((v, i) => v + extOpened[i])),
-      caption: `${totalOwnPRs} own, ${totalExtPRs} external opened.`,
-      kind: 'line',
-    },
-    {
-      label: 'MERGED PRs',
-      color: '#c9781f',
-      values: ownMerged.map((v, i) => v + extMerged[i]),
-      max: Math.max(1, ...ownMerged.map((v, i) => v + extMerged[i])),
-      caption: `${totalOwnMerged} own, ${totalExtMerged} external merged.`,
-      kind: 'line',
+      total: String(totals.ownPRs + totals.externalPRs),
+      unit: `opened · ${totals.ownMerged + totals.externalMerged} merged`,
+      kind: 'lines',
+      series: [
+        { name: 'opened', color: '#2f6fce', values: opened },
+        { name: 'merged', color: '#c9781f', values: merged },
+      ],
+      max: Math.max(1, ...opened, ...merged),
     },
     {
       label: 'REPOS CREATED',
-      color: '#7c4fd1',
-      values: reposCreated,
-      max: Math.max(1, ...reposCreated),
-      caption: `${years.reduce((s, y) => s + y.metrics.reposCreated, 0)} repos across the window.`,
+      total: String(totals.reposCreated),
+      unit: 'new repos',
       kind: 'bars',
+      series: [{ name: 'repos', color: '#7c4fd1', values: reposCreated }],
+      max: Math.max(1, ...reposCreated),
     },
     {
-      label: 'STARS (cumulative)',
-      color: '#c9971f',
-      values: starsCumulative,
+      label: 'STARS',
+      total: String(totals.starsGained),
+      unit: 'cumulative',
+      kind: 'step',
+      series: [{ name: 'stars', color: '#c9971f', values: starsCumulative }],
       max: Math.max(1, ...starsCumulative),
-      caption: `${totalStars} stars, cumulative.`,
-      kind: 'line',
     },
     {
-      label: 'REVIEWS + ISSUES',
-      color: '#d1453d',
-      values: [],
-      max: 1,
-      caption: `${totalReviews} reviews, ${totalIssues} issues across the window.`,
+      label: 'REVIEWS · ISSUES',
+      total: `${totalReviews} · ${totalIssues}`,
+      unit: '',
       kind: 'events',
+      series: [],
+      max: 1,
       events: [...reviewEvents, ...issueEvents],
     },
   ];
 }
 
-function renderChartsGrid(years: DetailedYearData[], startY: number): { svg: string; endY: number } {
-  const specs = buildChartSpecs(years);
-  const slots = chartGridSlots(specs.length, {
-    marginX: MARGIN,
-    contentWidth: CONTENT_WIDTH,
-    colGap: 32,
-    rowHeight: ROW_HEIGHT,
-    startY,
+/** Last month index that has data: the month containing `now`, or the window's end once it has passed. */
+export function lastElapsedMonth(years: DetailedYearData[], now: Date): number {
+  const total = years.length * 12;
+  if (total === 0) return -1;
+  const idx = monthIndex(years, now.toISOString());
+  if (idx >= 0) return idx;
+  return now.getUTCFullYear() < years[0].year ? -1 : total - 1;
+}
+
+function headerReason(journeyYear: JourneyYear, year: DetailedYearData): string {
+  const reason = renderReason(journeyYear.reason);
+  const lang = dominantLanguage(year.metrics);
+  // a language reason already names the language
+  return journeyYear.reason.kind === 'metric' && lang ? `${reason}  ·  ${lang}` : reason;
+}
+
+function renderTimeline(
+  years: DetailedYearData[],
+  journeyYears: JourneyYear[],
+  moments: TimelineMoment[],
+  startY: number,
+  now: Date
+): { svg: string; endY: number } {
+  if (years.length === 0) return { svg: '', endY: startY };
+
+  const months = years.length * 12;
+  const step = (PLOT_RIGHT - PLOT_LEFT) / months;
+  const mx = (i: number) => PLOT_LEFT + step * (i + 0.5);
+  const lastMonth = lastElapsedMonth(years, now);
+  const elapsed = (values: number[]) => values.slice(0, lastMonth + 1);
+  const plotFor = (len: number, top: number, height: number): PlotArea => ({
+    x: mx(0),
+    y: top,
+    width: step * Math.max(0, len - 1),
+    height,
   });
-  const labels = monthLabels(years);
-  const yearTicks = labels
-    .map((label, index) => ({ label, index }))
-    .filter(({ label }) => label.endsWith('-01'))
-    .map(({ label, index }) => ({ year: Number(label.slice(0, 4)), index }));
-  const rowIndexByY = new Map<number, number>();
-  const svg = specs
-    .map((spec, i) => {
-      const slot = slots[i];
-      if (!rowIndexByY.has(slot.y)) rowIndexByY.set(slot.y, rowIndexByY.size);
-      const row = rowIndexByY.get(slot.y)!;
-      return `<g class="chart-fade row${row}">${renderChart(spec, slot, yearTicks, labels.length)}</g>`;
-    })
-    .join('\n');
-  const lastRowY = Math.max(...slots.map((s) => s.y));
-  return { svg, endY: lastRowY + ROW_HEIGHT - 10 };
+
+  const headH = 74;
+  const laneY = startY + headH + 12;
+  const laneH = 30;
+  let rowY = laneY + laneH + 18;
+  const rows = buildChartSpecs(years).map((spec) => {
+    const top = rowY;
+    const h = ROW_HEIGHT[spec.kind];
+    rowY += h + ROW_GAP;
+    return { spec, top, base: top + h, h };
+  });
+  const plotBottom = rowY - ROW_GAP + 8;
+  const axisY = plotBottom + 16;
+
+  // year columns: band, divider, archetype header
+  const head: string[] = [];
+  years.forEach((year, k) => {
+    const x0 = PLOT_LEFT + k * 12 * step;
+    if (k % 2 === 1) {
+      head.push(`<rect x="${x0.toFixed(1)}" y="${startY}" width="${(12 * step).toFixed(1)}" height="${plotBottom - startY}" fill="${YEAR_BAND}" opacity="0.7"/>`);
+    }
+    if (k > 0) {
+      head.push(`<line x1="${x0.toFixed(1)}" y1="${startY}" x2="${x0.toFixed(1)}" y2="${plotBottom}" stroke="${RULE}" stroke-dasharray="3 3"/>`);
+    }
+    const jy = journeyYears.find((j) => j.year === year.year);
+    const current = jy?.isCurrent ?? false;
+    const tx = (x0 + 12).toFixed(1);
+    head.push(
+      `<text x="${tx}" y="${startY + 18}" font-family="${MONO}" font-size="11" fill="${current ? CURRENT : INK_LABEL}">${year.year}${current ? '  ● now' : ''}</text>`
+    );
+    if (jy) {
+      head.push(`<text x="${tx}" y="${startY + 40}" font-size="17" font-weight="700" fill="${current ? CURRENT : INK}">${escapeXml(jy.archetype)}</text>`);
+      head.push(`<text x="${tx}" y="${startY + 60}" font-size="12" fill="${INK_SECONDARY}">${escapeXml(headerReason(jy, year))}</text>`);
+    }
+  });
+  head.push(`<text x="${MARGIN}" y="${startY + 40}" font-family="${MONO}" font-size="10" fill="${INK_FAINT}" letter-spacing="1">ARCHETYPE</text>`);
+
+  // months that have not happened yet are hatched instead of drawn as zero
+  if (lastMonth < months - 1) {
+    const fx = PLOT_LEFT + (lastMonth + 1) * step;
+    head.push(`<rect x="${fx.toFixed(1)}" y="${laneY - 4}" width="${(PLOT_RIGHT - fx).toFixed(1)}" height="${plotBottom - laneY + 4}" fill="url(#notYet)"/>`);
+    head.push(`<text x="${((fx + PLOT_RIGHT) / 2).toFixed(1)}" y="${laneY - 8}" text-anchor="middle" font-family="${MONO}" font-size="9" fill="${INK_FAINT}">not yet</text>`);
+  }
+
+  // moments lane: numbered dots, nudged right so same-month moments do not overlap;
+  // moments from before the window sit hollow at its left edge
+  const lc = laneY + laneH / 2;
+  head.push(`<text x="${MARGIN}" y="${lc + 4}" font-family="${MONO}" font-size="10" fill="${INK_FAINT}" letter-spacing="1">MOMENTS</text>`);
+  head.push(`<line x1="${PLOT_LEFT}" y1="${lc}" x2="${PLOT_RIGHT}" y2="${lc}" stroke="${RULE}" stroke-width="2"/>`);
+  let lastDotX = -Infinity;
+  moments.forEach((m, i) => {
+    const idx = monthIndex(years, m.at);
+    const x = Math.max(idx >= 0 ? mx(idx) : PLOT_LEFT + 9, lastDotX + 18);
+    lastDotX = x;
+    const dot =
+      idx >= 0
+        ? `<circle cx="${x.toFixed(1)}" cy="${lc}" r="8.5" fill="${INK}"/>`
+        : `<circle cx="${x.toFixed(1)}" cy="${lc}" r="8" fill="${PAPER}" stroke="${INK}" stroke-width="1.5"/>`;
+    head.push(
+      `${dot}<text x="${x.toFixed(1)}" y="${lc + 3.5}" text-anchor="middle" font-family="${MONO}" font-size="9.5" font-weight="700" fill="${idx >= 0 ? PAPER : INK}">${i + 1}</text>`
+    );
+  });
+
+  const body = rows.map(({ spec, top, base, h }, r) => {
+    const parts: string[] = [
+      `<text x="${MARGIN}" y="${top + 9}" font-family="${MONO}" font-size="10" fill="${INK_LABEL}" letter-spacing="1">${escapeXml(spec.label)}</text>`,
+    ];
+    if (spec.kind === 'events') {
+      parts.push(`<text x="${MARGIN}" y="${top + 26}" font-size="15" font-weight="700" fill="${INK}">${escapeXml(spec.total)}</text>`);
+    } else {
+      parts.push(`<text x="${MARGIN}" y="${top + 32}" font-size="20" font-weight="700" fill="${INK}">${escapeXml(spec.total)}</text>`);
+      parts.push(`<text x="${MARGIN}" y="${top + 47}" font-size="10.5" fill="${INK_LABEL}">${escapeXml(spec.unit)}</text>`);
+      parts.push(`<line x1="${PLOT_LEFT}" y1="${base}" x2="${PLOT_RIGHT}" y2="${base}" stroke="${RULE}"/>`);
+    }
+
+    if (spec.kind === 'area' || spec.kind === 'lines') {
+      spec.series.forEach((s, si) => {
+        const values = elapsed(s.values);
+        const plot = plotFor(values.length, top, h);
+        const points = buildPolylinePoints(values, plot, spec.max);
+        if (spec.kind === 'area' && values.length > 1) {
+          parts.push(
+            `<path d="M${plot.x.toFixed(1)},${base} L${points.split(' ').join(' L')} L${(plot.x + plot.width).toFixed(1)},${base} Z" fill="${s.color}" opacity="0.13"/>`
+          );
+        }
+        parts.push(`<polyline fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" points="${points}"/>`);
+        // two series share a row: label the first peak to the left, the second to the right
+        const [dx, anchor] = spec.series.length > 1 ? (si === 0 ? [-4, 'end'] : [4, 'start']) : [0, 'middle'];
+        parts.push(renderPeakLabel(values, plot, spec.max, s.color, dx as number, anchor as string));
+      });
+      if (spec.series.length > 1) {
+        spec.series.forEach((s, si) => {
+          const lx = PLOT_LEFT + 8 + si * 60;
+          parts.push(
+            `<rect x="${lx}" y="${top + 2}" width="10" height="3" fill="${s.color}"/><text x="${lx + 14}" y="${top + 7}" font-size="10" fill="${INK_SECONDARY}">${escapeXml(s.name)}</text>`
+          );
+        });
+      }
+    } else if (spec.kind === 'bars') {
+      const s = spec.series[0];
+      const values = elapsed(s.values);
+      const plot = plotFor(values.length, top, h);
+      parts.push(
+        buildBars(values, plot, spec.max, 9)
+          .filter((b) => b.height > 0)
+          .map((b) => `<rect x="${b.x.toFixed(1)}" y="${b.y.toFixed(1)}" width="9" height="${b.height.toFixed(1)}" rx="1.5" fill="${s.color}"/>`)
+          .join('')
+      );
+      parts.push(renderPeakLabel(values, plot, spec.max, s.color));
+    } else if (spec.kind === 'step') {
+      const s = spec.series[0];
+      const values = elapsed(s.values);
+      const plot = plotFor(values.length, top, h);
+      const xs: number[] = [];
+      const pts = values.flatMap((_, i) => {
+        const py = pointAt(values, i, plot, spec.max).y.toFixed(1);
+        xs.push(mx(i) - step / 2, mx(i) + step / 2);
+        return [`${(mx(i) - step / 2).toFixed(1)},${py}`, `${(mx(i) + step / 2).toFixed(1)},${py}`];
+      });
+      if (pts.length > 0) {
+        parts.push(`<path d="M${xs[0].toFixed(1)},${base} L${pts.join(' L')} L${xs[xs.length - 1].toFixed(1)},${base} Z" fill="${s.color}" opacity="0.13"/>`);
+        parts.push(`<polyline fill="none" stroke="${s.color}" stroke-width="2" points="${pts.join(' ')}"/>`);
+        const lastValue = values[values.length - 1];
+        if (lastValue > 0) {
+          const ly = pointAt(values, values.length - 1, plot, spec.max).y;
+          parts.push(
+            `<text x="${(mx(values.length - 1) + 2).toFixed(1)}" y="${(ly - 5).toFixed(1)}" text-anchor="end" font-size="10" font-weight="700" font-family="${MONO}" fill="#b8860b">${lastValue}</text>`
+          );
+        }
+      }
+    } else {
+      // events stack upward within a month so two reviews never read as one
+      const lineY = top + 13;
+      parts.push(`<line x1="${PLOT_LEFT}" y1="${lineY}" x2="${PLOT_RIGHT}" y2="${lineY}" stroke="${RULE}"/>`);
+      const used = new Map<number, number>();
+      for (const e of spec.events ?? []) {
+        const slot = used.get(e.index) ?? 0;
+        used.set(e.index, slot + 1);
+        const ey = lineY - slot * 10;
+        const ex = mx(e.index);
+        parts.push(
+          e.type === 'review'
+            ? `<circle cx="${ex.toFixed(1)}" cy="${ey}" r="4" fill="#2f6fce"/>`
+            : `<rect x="${(ex - 4).toFixed(1)}" y="${ey - 4}" width="8" height="8" fill="#d1453d"/>`
+        );
+      }
+      parts.push(
+        `<circle cx="${PLOT_LEFT + 12}" cy="${top + 4}" r="3.5" fill="#2f6fce"/><text x="${PLOT_LEFT + 20}" y="${top + 7.5}" font-size="10" fill="${INK_SECONDARY}">review</text>`,
+        `<rect x="${PLOT_LEFT + 62}" y="${top + 0.5}" width="7" height="7" fill="#d1453d"/><text x="${PLOT_LEFT + 74}" y="${top + 7.5}" font-size="10" fill="${INK_SECONDARY}">issue</text>`
+      );
+    }
+    return `<g class="chart-fade row${r}">\n  ${parts.join('\n  ')}\n</g>`;
+  });
+
+  const axis: string[] = [];
+  years.forEach((_, k) => {
+    ['Jan', 'Apr', 'Jul', 'Oct'].forEach((name, q) => {
+      const x = mx(k * 12 + q * 3).toFixed(1);
+      axis.push(
+        `<line x1="${x}" y1="${plotBottom}" x2="${x}" y2="${plotBottom + 4}" stroke="${INK_FAINT}"/><text x="${x}" y="${axisY}" text-anchor="middle" font-family="${MONO}" font-size="9" fill="${INK_FAINT}">${name}</text>`
+      );
+    });
+  });
+
+  const list: string[] = [];
+  let endY = axisY;
+  if (moments.length > 0) {
+    const ruleY = axisY + 20;
+    const labelY = ruleY + 26;
+    list.push(`<line x1="${MARGIN}" y1="${ruleY}" x2="${PLOT_RIGHT}" y2="${ruleY}" stroke="${RULE}"/>`);
+    list.push(`<text x="${MARGIN}" y="${labelY}" font-family="${MONO}" font-size="10.5" fill="${INK_LABEL}" letter-spacing="1.2">MOMENTS</text>`);
+    moments.forEach((m, i) => {
+      const y = labelY + 30 + i * 22;
+      list.push(
+        `<g class="moment-fade m${i}"><circle cx="36" cy="${y - 4}" r="8" fill="${INK}"/><text x="36" y="${y - 0.5}" text-anchor="middle" font-family="${MONO}" font-size="9.5" font-weight="700" fill="${PAPER}">${i + 1}</text>` +
+          `<text x="54" y="${y}" font-family="${MONO}" font-size="11.5" fill="${INK_LABEL}">${escapeXml(m.date)}</text>` +
+          `<text x="140" y="${y}" font-size="12.5" fill="${INK_SECONDARY}">${escapeXml(m.label)}</text></g>`
+      );
+      endY = y;
+    });
+  }
+
+  const svg = [`<g class="divider-fade">\n  ${head.join('\n  ')}\n</g>`, ...body, ...axis, ...list].join('\n');
+  return { svg, endY };
 }
 
 const FRIENDLY_COLUMN: Record<string, string> = {
@@ -472,20 +617,17 @@ export function renderDetailedSvg(
   username: string,
   arcLine: string,
   years: DetailedYearData[],
-  journeyYears: JourneyYear[]
+  journeyYears: JourneyYear[],
+  now: Date = new Date()
 ): string {
   const hero = selectHero(years);
-  const moments = selectMoreMoments(years, hero);
+  const moments = timelineMoments(hero, selectMoreMoments(years, hero));
   const totals = windowTotals(years);
   const cumulativeLines = renderCumulativeSentence({ ...totals, yearCount: years.length });
 
-  const heroSvg = renderHeroSection(hero, moments, cumulativeLines);
-  const heroHeight = heroSectionHeight(moments.length, hero !== null);
-  const analysisLabelY = heroHeight + 26;
-  const chartsStartY = analysisLabelY + 16;
-
-  const { svg: chartsSvg, endY: afterCharts } = renderChartsGrid(years, chartsStartY);
-  const { svg: reportCardSvg, endY: afterReportCard } = renderReportCard(years, afterCharts + 20);
+  const { svg: heroSvg, height: heroHeight } = renderHeroSection(username, arcLine, yearSpan(years), hero, cumulativeLines);
+  const { svg: timelineSvg, endY: afterTimeline } = renderTimeline(years, journeyYears, moments, heroHeight + 20, now);
+  const { svg: reportCardSvg, endY: afterReportCard } = renderReportCard(years, afterTimeline + 40);
   const { svg: notesSvg, endY: notesEndY } = renderYearNotes(years, journeyYears, afterReportCard + 30);
   const totalHeight = notesEndY + 20;
 
@@ -504,21 +646,18 @@ export function renderDetailedSvg(
     <filter id="polaroidShadow" x="-30%" y="-30%" width="160%" height="160%">
       <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#3a2a16" flood-opacity="0.22"/>
     </filter>
+    <pattern id="notYet" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="6" height="6" fill="${PAPER}"/>
+      <line x1="0" y1="0" x2="0" y2="6" stroke="${RULE}" stroke-width="2"/>
+    </pattern>
   </defs>
   <g clip-path="url(#cardClip)">
-    <rect x="0" y="0" width="${CARD_WIDTH}" height="${totalHeight}" fill="#faf3e6"/>
+    <rect x="0" y="0" width="${CARD_WIDTH}" height="${totalHeight}" fill="${PAPER}"/>
     <rect x="0" y="0" width="${CARD_WIDTH}" height="${totalHeight}" filter="url(#paperGrain)"/>
   </g>
   <rect x="0.5" y="0.5" width="${CARD_WIDTH - 1}" height="${totalHeight - 1}" rx="12" fill="none" stroke="#ded3bd"/>
-  <text x="${MARGIN}" y="34" font-size="18" font-weight="700" fill="${INK}">${escapeXml(username)} · full journey</text>
-  <text x="${MARGIN}" y="54" font-family="ui-monospace, Consolas, monospace" font-size="11" fill="#44403c">${escapeXml(arcLine)}</text>
   ${heroSvg}
-  <g class="divider-fade">
-  <line x1="${MARGIN}" y1="${analysisLabelY - 16}" x2="${CARD_WIDTH - MARGIN}" y2="${analysisLabelY - 16}" stroke="#ded3bd"/>
-  <text x="${MARGIN}" y="${analysisLabelY}" font-size="11" font-weight="600" fill="${INK_LABEL}" letter-spacing="1">ANALYSIS</text>
-  <text x="${MARGIN + 58}" y="${analysisLabelY}" font-size="11" fill="#8a8175">— the numbers behind the story above</text>
-  </g>
-  ${chartsSvg}
+  ${timelineSvg}
   ${reportCardSvg}
   ${notesSvg}
 </svg>`;

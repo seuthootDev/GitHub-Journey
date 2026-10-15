@@ -64,7 +64,7 @@ export async function buildJourney(
   const journeyYears = contexts.map(evaluateYear);
 
   const arcLine = summarizeJourney(journeyYears) || journeyYears.map((y) => y.archetype).join(' → ');
-  const detailedSvg = renderDetailedSvg(opts.username, arcLine, detailedYears, journeyYears);
+  const detailedSvg = renderDetailedSvg(opts.username, arcLine, detailedYears, journeyYears, now);
 
   const hero = selectHero(detailedYears);
   const moments = selectMoreMoments(detailedYears, hero);

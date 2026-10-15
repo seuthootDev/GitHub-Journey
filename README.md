@@ -26,9 +26,15 @@ GitHub only shows about **5 lines** of a pinned Gist. That fold is the product:
 From a quiet year to Open Source Contributor
 ```
 
-`●` marks the current year. Open the Gist itself for the year-by-year table underneath.
+`●` marks the current year. Open the Gist itself for the year-by-year table and the full journey card underneath.
 
 Live example: [gist.github.com/seuthootDev/be21b22500c89de894da8b2c1c03573c](https://gist.github.com/seuthootDev/be21b22500c89de894da8b2c1c03573c)
+
+## What the Gist shows inside
+
+Opening the Gist shows `journey.svg`: every year's archetype on one month axis, with the numbered moments, commit days, pull requests, new repos, stars, and reviews/issues lined up under it. Months that haven't happened yet are hatched rather than drawn as zero.
+
+![Full journey card](demo/detailed-card.svg)
 
 ---
 
